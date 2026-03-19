@@ -10,6 +10,7 @@ from app.database import (
 )
 
 
+# Create a new lesson for a course
 def create_lesson(course_id: int, lesson_data: dict) -> str:
     existing_lessons = get_course_lessons(course_id)
     order = len(existing_lessons) + 1
@@ -29,6 +30,7 @@ def create_lesson(course_id: int, lesson_data: dict) -> str:
     return str(result.inserted_id)
 
 
+# Get all lessons for a course
 def get_course_lessons(course_id: int) -> List[Dict[str, Any]]:
     lessons = course_content_collection.find({"course_id": course_id}).sort("order", 1)
 
@@ -40,6 +42,7 @@ def get_course_lessons(course_id: int) -> List[Dict[str, Any]]:
     return result
 
 
+# Get a single lesson
 def get_lesson(lesson_id: str) -> Optional[Dict[str, Any]]:
     try:
         lesson = course_content_collection.find_one({"_id": ObjectId(lesson_id)})
@@ -50,6 +53,7 @@ def get_lesson(lesson_id: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+# Update a lesson
 def update_lesson(lesson_id: str, update_data: dict) -> bool:
     try:
         update_data["updated_at"] = datetime.utcnow()
@@ -61,6 +65,7 @@ def update_lesson(lesson_id: str, update_data: dict) -> bool:
         return False
 
 
+# Delete a lesson
 def delete_lesson(lesson_id: str) -> bool:
     try:
         result = course_content_collection.delete_one({"_id": ObjectId(lesson_id)})
@@ -69,11 +74,13 @@ def delete_lesson(lesson_id: str) -> bool:
         return False
 
 
+# Delete all lessons for a course
 def delete_course_lessons(course_id: int) -> bool:
     result = course_content_collection.delete_many({"course_id": course_id})
     return result.deleted_count > 0
 
 
+# Get user progress for a course
 def get_user_progress(user_id: int, course_id: int) -> Dict[str, Any]:
     progress = user_progress_collection.find_one(
         {"user_id": user_id, "course_id": course_id}
@@ -101,6 +108,7 @@ def get_user_progress(user_id: int, course_id: int) -> Dict[str, Any]:
     return progress
 
 
+# Update lesson progress
 def update_lesson_progress(
     user_id: int, course_id: int, lesson_id: str, completed: bool
 ) -> Dict[str, Any]:
@@ -139,6 +147,7 @@ def update_lesson_progress(
     return get_user_progress(user_id, course_id)
 
 
+# Get all progress for a user
 def get_user_all_progress(user_id: int) -> List[Dict[str, Any]]:
     progress_list = user_progress_collection.find({"user_id": user_id})
 
@@ -150,6 +159,7 @@ def get_user_all_progress(user_id: int) -> List[Dict[str, Any]]:
     return result
 
 
+# Create audit log in MongoDB
 def create_audit_log_mongo(log_data: dict) -> str:
     log_doc = {
         "user_id": log_data.get("user_id"),
@@ -166,6 +176,7 @@ def create_audit_log_mongo(log_data: dict) -> str:
     return str(result.inserted_id)
 
 
+# Get audit logs with filters
 def get_audit_logs(
     user_id: Optional[int] = None, action: Optional[str] = None, limit: int = 100
 ) -> List[Dict[str, Any]]:

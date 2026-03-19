@@ -11,23 +11,29 @@ from app.models import User, UserRole, AuditLog
 from app.schemas import TokenData
 import os
 
+# JWT settings
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
+# Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# Security scheme
 security = HTTPBearer(auto_error=False)
 
 
+# Verify password
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
+# Hash password
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
+# Create JWT token
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     
@@ -42,6 +48,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 
+# Decode JWT token
 def decode_token(token: str) -> Optional[TokenData]:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -57,6 +64,7 @@ def decode_token(token: str) -> Optional[TokenData]:
         return None
 
 
+# Get current user from token
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
@@ -89,12 +97,14 @@ async def get_current_user(
     return user
 
 
+# Check if user is active
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
 
+# Check if user is admin
 async def require_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
@@ -104,6 +114,7 @@ async def require_admin(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
+# Log audit event
 def log_audit_event(
     db: Session,
     action: str,

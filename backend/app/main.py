@@ -1,3 +1,8 @@
+"""
+Main FastAPI Application for LearnFlow
+This is the entry point for the backend API
+"""
+
 from datetime import datetime
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Request
@@ -37,38 +42,54 @@ from app.mongo_service import (
     get_user_all_progress,
 )
 
+# Create database tables (in production, use Alembic migrations)
 Base.metadata.create_all(bind=engine)
 
+# Initialize FastAPI app
 app = FastAPI(
     title="LearnFlow API",
     description="Learning Management System API with dual database architecture",
     version="1.0.0",
 )
 
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # In production, specify exact origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Security scheme
 security = HTTPBearer()
+
+
+# ============== ROOT ENDPOINT ==============
 
 
 @app.get("/")
 def read_root():
+    """Root endpoint - API health check"""
     return {"message": "Welcome to LearnFlow API", "version": "1.0.0", "docs": "/docs"}
+
+
+# ============== AUTHENTICATION ENDPOINTS ==============
 
 
 @app.post("/api/auth/register", response_model=Token)
 def register(user_data: UserCreate, request: Request, db: Session = Depends(get_db)):
+    """
+    Register a new user (learner or admin)
+    """
+    # Check if user already exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
         )
 
+    # Create new user
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
         email=user_data.email,
@@ -82,6 +103,7 @@ def register(user_data: UserCreate, request: Request, db: Session = Depends(get_
     db.commit()
     db.refresh(new_user)
 
+    # Log the registration
     log_audit_event(
         db=db,
         action="user_registered",
@@ -91,6 +113,7 @@ def register(user_data: UserCreate, request: Request, db: Session = Depends(get_
         request=request,
     )
 
+    # Create access token
     access_token = create_access_token(
         data={
             "user_id": new_user.id,
@@ -104,6 +127,10 @@ def register(user_data: UserCreate, request: Request, db: Session = Depends(get_
 
 @app.post("/api/auth/login", response_model=Token)
 def login(credentials: UserLogin, request: Request, db: Session = Depends(get_db)):
+    """
+    Login user and return JWT token
+    """
+    # Find user by email
     user = db.query(User).filter(User.email == credentials.email).first()
 
     if not user or not verify_password(credentials.password, user.hashed_password):
@@ -118,11 +145,14 @@ def login(credentials: UserLogin, request: Request, db: Session = Depends(get_db
             status_code=status.HTTP_403_FORBIDDEN, detail="User account is deactivated"
         )
 
+    # Update last login
     user.last_login = datetime.utcnow()
     db.commit()
 
+    # Log the login
     log_audit_event(db=db, action="user_login", user_id=user.id, request=request)
 
+    # Create access token
     access_token = create_access_token(
         data={"user_id": user.id, "email": user.email, "role": user.role.value}
     )
@@ -132,6 +162,9 @@ def login(credentials: UserLogin, request: Request, db: Session = Depends(get_db
 
 @app.get("/api/auth/me", response_model=UserResponse)
 def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """
+    Get current authenticated user's information
+    """
     return current_user
 
 
@@ -141,6 +174,9 @@ def update_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """
+    Update current user's profile
+    """
     if profile_data.first_name:
         current_user.first_name = profile_data.first_name
     if profile_data.last_name:
@@ -154,16 +190,25 @@ def update_profile(
     return current_user
 
 
+# ============== USER ENDPOINTS (Admin only) ==============
+
+
 @app.get("/api/users", response_model=List[UserResponse])
 def get_users(
     skip: int = 0,
-    limit: int = 20,
+    limit: int = 20,  # Default limit to prevent over-fetching
     role: Optional[str] = None,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """
+    Get all users (Admin only)
+    """
+    # Sanitize limit (max 50, min 1)
     limit = max(1, min(50, limit))
+    # Sanitize skip (max 1000, min 0)
     skip = max(0, min(1000, skip))
+    # Validate role filter
     allowed_roles = ["learner", "admin"]
     if role and role not in allowed_roles:
         role = None
@@ -182,10 +227,16 @@ def get_user(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """
+    Get a specific user by ID (Admin only)
+    """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+
+# ============== COURSE ENDPOINTS ==============
 
 
 @app.get("/api/courses", response_model=List[CourseListResponse])
@@ -194,9 +245,13 @@ def get_courses(
     level: Optional[str] = None,
     search: Optional[str] = None,
     skip: int = 0,
-    limit: int = 20,
+    limit: int = 20,  # Default limit to prevent over-fetching
     db: Session = Depends(get_db),
 ):
+    """
+    Get all courses with optional filtering
+    """
+    # Validate and sanitize filter parameters
     allowed_categories = [
         "Programming",
         "Design",
@@ -206,10 +261,14 @@ def get_courses(
     ]
     allowed_levels = ["Beginner", "Intermediate", "Advanced"]
 
+    # Sanitize limit (max 50, min 1)
     limit = max(1, min(50, limit))
+    # Sanitize skip (max 1000, min 0)
     skip = max(0, min(1000, skip))
+    # Sanitize search (max 100 chars)
     if search:
         search = search.strip()[:100]
+    # Validate category and level
     if category and category not in allowed_categories:
         category = None
     if level and level not in allowed_levels:
@@ -232,6 +291,9 @@ def get_courses(
 
 @app.get("/api/courses/{course_id}", response_model=CourseResponse)
 def get_course(course_id: int, db: Session = Depends(get_db)):
+    """
+    Get a specific course by ID
+    """
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -245,6 +307,9 @@ def create_course(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """
+    Create a new course (Admin only)
+    """
     new_course = Course(
         title=course_data.title,
         description=course_data.description,
@@ -261,6 +326,7 @@ def create_course(
     db.commit()
     db.refresh(new_course)
 
+    # Log the action
     log_audit_event(
         db=db,
         action="course_created",
@@ -281,6 +347,9 @@ def update_course(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """
+    Update a course (Admin only)
+    """
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -292,6 +361,7 @@ def update_course(
     db.commit()
     db.refresh(course)
 
+    # Log the action
     log_audit_event(
         db=db,
         action="course_updated",
@@ -311,10 +381,14 @@ def delete_course(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """
+    Delete a course (Admin only)
+    """
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
+    # Delete associated lessons from MongoDB
     from app.mongo_service import delete_course_lessons
 
     delete_course_lessons(course_id)
@@ -322,6 +396,7 @@ def delete_course(
     db.delete(course)
     db.commit()
 
+    # Log the action
     log_audit_event(
         db=db,
         action="course_deleted",
@@ -336,8 +411,14 @@ def delete_course(
 
 @app.get("/api/categories")
 def get_categories(db: Session = Depends(get_db)):
+    """
+    Get all unique course categories
+    """
     categories = db.query(Course.category).distinct().all()
     return [cat[0] for cat in categories]
+
+
+# ============== LESSON ENDPOINTS (MongoDB) ==============
 
 
 @app.post("/api/courses/{course_id}/lessons")
@@ -348,12 +429,19 @@ def add_lesson(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """
+    Add a lesson to a course (Admin only)
+    Lessons are stored in MongoDB
+    """
+    # Verify course exists
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
+    # Create lesson in MongoDB
     lesson_id = create_lesson(course_id, lesson_data.dict())
 
+    # Log the action
     log_audit_event(
         db=db,
         action="lesson_created",
@@ -367,6 +455,11 @@ def add_lesson(
 
 @app.get("/api/courses/{course_id}/lessons")
 def get_lessons(course_id: int, db: Session = Depends(get_db)):
+    """
+    Get all lessons for a course
+    Lessons are retrieved from MongoDB
+    """
+    # Verify course exists
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -375,8 +468,15 @@ def get_lessons(course_id: int, db: Session = Depends(get_db)):
     return lessons
 
 
+# ============== PROGRESS ENDPOINTS (MongoDB) ==============
+
+
 @app.get("/api/courses/{course_id}/progress")
 def get_course_progress(course_id: int, current_user: User = Depends(get_current_user)):
+    """
+    Get current user's progress for a course
+    Progress is stored in MongoDB
+    """
     progress = get_user_progress(current_user.id, course_id)
     return progress
 
@@ -389,10 +489,15 @@ def update_progress(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """
+    Update lesson progress for current user
+    Progress is stored in MongoDB
+    """
     progress = update_lesson_progress(
         current_user.id, course_id, progress_data.lesson_id, progress_data.completed
     )
 
+    # Log the action
     log_audit_event(
         db=db,
         action="lesson_completed" if progress_data.completed else "lesson_incomplete",
@@ -406,8 +511,14 @@ def update_progress(
 
 @app.get("/api/my-progress")
 def get_my_progress(current_user: User = Depends(get_current_user)):
+    """
+    Get all progress records for current user
+    """
     progress_list = get_user_all_progress(current_user.id)
     return progress_list
+
+
+# ============== ENROLLMENT ENDPOINTS ==============
 
 
 @app.post("/api/courses/{course_id}/enroll")
@@ -417,6 +528,10 @@ def enroll_in_course(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """
+    Enroll current user in a course
+    """
+    # Check if already enrolled
     existing = (
         db.query(Enrollment)
         .filter(
@@ -428,15 +543,18 @@ def enroll_in_course(
     if existing:
         raise HTTPException(status_code=400, detail="Already enrolled in this course")
 
+    # Verify course exists
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
+    # Create enrollment
     enrollment = Enrollment(user_id=current_user.id, course_id=course_id)
 
     db.add(enrollment)
     db.commit()
 
+    # Log the action
     log_audit_event(
         db=db,
         action="course_enrolled",
@@ -449,15 +567,23 @@ def enroll_in_course(
     return {"message": "Enrolled successfully"}
 
 
+# ============== AUDIT LOG ENDPOINTS (Admin only) ==============
+
+
 @app.get("/api/audit-logs")
 def get_audit_logs(
     user_id: Optional[int] = None,
     action: Optional[str] = None,
-    limit: int = 50,
+    limit: int = 50,  # Default limit to prevent over-fetching
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """
+    Get audit logs (Admin only)
+    """
+    # Sanitize limit (max 100, min 1)
     limit = max(1, min(100, limit))
+    # Validate action filter (only allow specific actions)
     allowed_actions = [
         "user_registered",
         "user_login",
@@ -484,12 +610,21 @@ def get_audit_logs(
     return logs
 
 
+# ============== HEALTH CHECK ==============
+
+
 @app.get("/api/health")
 def health_check():
+    """
+    Health check endpoint for monitoring
+    """
     return {
         "status": "healthy",
         "databases": {"postgresql": "connected", "mongodb": "connected"},
     }
+
+
+# ============== ANALYTICS ENDPOINTS (Admin only) ==============
 
 
 @app.get("/api/analytics/stats")
@@ -497,10 +632,22 @@ def get_analytics_stats(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """
+    Get analytics statistics for admin dashboard
+    """
+    # Total users
     total_users = db.query(User).count()
+
+    # Total courses
     total_courses = db.query(Course).count()
+
+    # Total enrollments
     total_enrollments = db.query(Enrollment).count()
+
+    # Active users (users with enrollments)
     active_users = db.query(Enrollment.user_id).distinct().count()
+
+    # Published courses
     published_courses = db.query(Course).filter(Course.is_published == True).count()
 
     return {
@@ -517,6 +664,10 @@ def get_category_distribution(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """
+    Get course distribution by category
+    """
+    # Get count per category
     categories = (
         db.query(Course.category, func.count(Course.id).label("count"))
         .group_by(Course.category)
@@ -525,6 +676,7 @@ def get_category_distribution(
 
     total = sum(cat.count for cat in categories) if categories else 1
 
+    # Calculate percentages
     result = []
     for cat in categories:
         percentage = round((cat.count / total) * 100) if total > 0 else 0
@@ -539,20 +691,32 @@ def get_category_distribution(
     return result
 
 
+# ============== LEARNER DASHBOARD ENDPOINTS ==============
+
+
 @app.get("/api/learner/stats")
 def get_learner_stats(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """
+    Get learner dashboard statistics
+    """
+    # Get enrollments for this user
     enrollments = (
         db.query(Enrollment).filter(Enrollment.user_id == current_user.id).all()
     )
 
+    # Courses in progress (enrolled but not completed)
     courses_in_progress = len([e for e in enrollments if not e.completed_at])
+
+    # Courses completed
     courses_completed = len([e for e in enrollments if e.completed_at])
 
+    # Get progress from MongoDB
     progress_list = get_user_all_progress(current_user.id)
 
+    # Calculate total lessons completed
     lessons_completed = sum(len(p.get("completed_lessons", [])) for p in progress_list)
 
     return {
@@ -568,6 +732,9 @@ def get_learner_enrollments(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """
+    Get all courses the learner is enrolled in with progress
+    """
     enrollments = (
         db.query(Enrollment).filter(Enrollment.user_id == current_user.id).all()
     )
@@ -576,8 +743,10 @@ def get_learner_enrollments(
     for enrollment in enrollments:
         course = db.query(Course).filter(Course.id == enrollment.course_id).first()
         if course:
+            # Get progress from MongoDB
             progress = get_user_progress(current_user.id, enrollment.course_id)
 
+            # Get lessons for this course
             lessons = get_course_lessons(enrollment.course_id)
             total_lessons = len(lessons) if lessons else 0
             completed_lessons = (
