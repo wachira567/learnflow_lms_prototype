@@ -1,117 +1,185 @@
-from pymongo import MongoClient
-from typing import Optional, List, Dict, Any
 from datetime import datetime
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-MONGO_HOST = os.getenv("MONGO_HOST", "localhost")
-MONGO_PORT = int(os.getenv("MONGO_PORT", "27017"))
-MONGO_DB = os.getenv("MONGO_DB", "learnflow_content")
-
-client = MongoClient(MONGO_HOST, MONGO_PORT)
-db = client[MONGO_DB]
+from typing import List, Optional, Dict, Any
+from bson import ObjectId
+from bson.errors import InvalidId
+from pymongo.errors import PyMongoError
+from app.database import (
+    course_content_collection,
+    user_progress_collection,
+    audit_logs_collection,
+)
 
 
-def get_db():
-    return db
+def create_lesson(course_id: int, lesson_data: dict) -> str:
+    existing_lessons = get_course_lessons(course_id)
+    order = len(existing_lessons) + 1
 
+    lesson_doc = {
+        "course_id": course_id,
+        "title": lesson_data["title"],
+        "type": lesson_data.get("type", "video"),
+        "duration": lesson_data["duration"],
+        "content": lesson_data.get("content", ""),
+        "order": order,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+    }
 
-lessons_collection = db["lessons"]
-progress_collection = db["progress"]
-audit_logs_collection = db["audit_logs"]
-
-
-def create_lesson(course_id: int, lesson_data: Dict[str, Any]) -> str:
-    lesson_data["course_id"] = course_id
-    lesson_data["created_at"] = datetime.utcnow()
-    lesson_data["updated_at"] = datetime.utcnow()
-    result = lessons_collection.insert_one(lesson_data)
+    result = course_content_collection.insert_one(lesson_doc)
     return str(result.inserted_id)
 
 
-def get_lessons_by_course(course_id: int) -> List[Dict[str, Any]]:
-    lessons = list(lessons_collection.find({"course_id": course_id}).sort("order", 1))
+def get_course_lessons(course_id: int) -> List[Dict[str, Any]]:
+    lessons = course_content_collection.find({"course_id": course_id}).sort("order", 1)
+
+    result = []
     for lesson in lessons:
         lesson["id"] = str(lesson.pop("_id"))
-    return lessons
+        result.append(lesson)
+
+    return result
 
 
 def get_lesson(lesson_id: str) -> Optional[Dict[str, Any]]:
-    lesson = lessons_collection.find_one({"_id": lesson_id})
-    if lesson:
-        lesson["id"] = str(lesson.pop("_id"))
-    return lesson
+    try:
+        lesson = course_content_collection.find_one({"_id": ObjectId(lesson_id)})
+        if lesson:
+            lesson["id"] = str(lesson.pop("_id"))
+        return lesson
+    except (InvalidId, PyMongoError):
+        return None
 
 
-def update_lesson(lesson_id: str, lesson_data: Dict[str, Any]) -> bool:
-    lesson_data["updated_at"] = datetime.utcnow()
-    result = lessons_collection.update_one(
-        {"_id": lesson_id},
-        {"$set": lesson_data}
-    )
-    return result.modified_count > 0
+def update_lesson(lesson_id: str, update_data: dict) -> bool:
+    try:
+        update_data["updated_at"] = datetime.utcnow()
+        result = course_content_collection.update_one(
+            {"_id": ObjectId(lesson_id)}, {"$set": update_data}
+        )
+        return result.modified_count > 0
+    except (InvalidId, PyMongoError):
+        return False
 
 
 def delete_lesson(lesson_id: str) -> bool:
-    result = lessons_collection.delete_one({"_id": lesson_id})
+    try:
+        result = course_content_collection.delete_one({"_id": ObjectId(lesson_id)})
+        return result.deleted_count > 0
+    except (InvalidId, PyMongoError):
+        return False
+
+
+def delete_course_lessons(course_id: int) -> bool:
+    result = course_content_collection.delete_many({"course_id": course_id})
     return result.deleted_count > 0
 
 
-def get_user_progress(user_id: int, course_id: int) -> List[Dict[str, Any]]:
-    progress = list(progress_collection.find({
-        "user_id": user_id,
-        "course_id": course_id
-    }))
-    for p in progress:
-        p["lesson_id"] = p.pop("_id")
-    return progress
-
-
-def update_user_progress(user_id: int, course_id: int, lesson_id: str, completed: bool) -> bool:
-    progress_record = {
-        "user_id": user_id,
-        "course_id": course_id,
-        "lesson_id": lesson_id,
-        "completed": completed,
-        "completed_at": datetime.utcnow() if completed else None,
-        "updated_at": datetime.utcnow()
-    }
-    result = progress_collection.update_one(
-        {"user_id": user_id, "course_id": course_id, "lesson_id": lesson_id},
-        {"$set": progress_record},
-        upsert=True
+def get_user_progress(user_id: int, course_id: int) -> Dict[str, Any]:
+    progress = user_progress_collection.find_one(
+        {"user_id": user_id, "course_id": course_id}
     )
-    return result.acknowledged
 
+    if not progress:
+        return {
+            "user_id": user_id,
+            "course_id": course_id,
+            "completed_lessons": [],
+            "total_lessons": len(get_course_lessons(course_id)),
+            "progress_percentage": 0.0,
+            "last_accessed": None,
+        }
 
-def get_lesson_progress(user_id: int, course_id: int, lesson_id: str) -> Optional[Dict[str, Any]]:
-    progress = progress_collection.find_one({
-        "user_id": user_id,
-        "course_id": course_id,
-        "lesson_id": lesson_id
-    })
-    if progress:
-        progress["lesson_id"] = str(progress.pop("_id"))
+    progress["id"] = str(progress.pop("_id"))
+
+    total_lessons = len(get_course_lessons(course_id))
+    completed_count = len(progress.get("completed_lessons", []))
+    progress["total_lessons"] = total_lessons
+    progress["progress_percentage"] = (
+        (completed_count / total_lessons * 100) if total_lessons > 0 else 0
+    )
+
     return progress
 
 
-def log_audit_event(user_id: int, action: str, details: Dict[str, Any]):
-    audit_record = {
-        "user_id": user_id,
-        "action": action,
-        "details": details,
-        "timestamp": datetime.utcnow()
+def update_lesson_progress(
+    user_id: int, course_id: int, lesson_id: str, completed: bool
+) -> Dict[str, Any]:
+    progress = user_progress_collection.find_one(
+        {"user_id": user_id, "course_id": course_id}
+    )
+
+    if progress:
+        completed_lessons = set(progress.get("completed_lessons", []))
+
+        if completed:
+            completed_lessons.add(lesson_id)
+        else:
+            completed_lessons.discard(lesson_id)
+
+        user_progress_collection.update_one(
+            {"_id": progress["_id"]},
+            {
+                "$set": {
+                    "completed_lessons": list(completed_lessons),
+                    "last_accessed": datetime.utcnow(),
+                }
+            },
+        )
+    else:
+        completed_lessons = [lesson_id] if completed else []
+        user_progress_collection.insert_one(
+            {
+                "user_id": user_id,
+                "course_id": course_id,
+                "completed_lessons": completed_lessons,
+                "last_accessed": datetime.utcnow(),
+            }
+        )
+
+    return get_user_progress(user_id, course_id)
+
+
+def get_user_all_progress(user_id: int) -> List[Dict[str, Any]]:
+    progress_list = user_progress_collection.find({"user_id": user_id})
+
+    result = []
+    for progress in progress_list:
+        progress["id"] = str(progress.pop("_id"))
+        result.append(progress)
+
+    return result
+
+
+def create_audit_log_mongo(log_data: dict) -> str:
+    log_doc = {
+        "user_id": log_data.get("user_id"),
+        "action": log_data["action"],
+        "resource_type": log_data.get("resource_type"),
+        "resource_id": log_data.get("resource_id"),
+        "details": log_data.get("details"),
+        "ip_address": log_data.get("ip_address"),
+        "user_agent": log_data.get("user_agent"),
+        "created_at": datetime.utcnow(),
     }
-    audit_logs_collection.insert_one(audit_record)
+
+    result = audit_logs_collection.insert_one(log_doc)
+    return str(result.inserted_id)
 
 
-def get_audit_logs(limit: int = 100, action: Optional[str] = None) -> List[Dict[str, Any]]:
+def get_audit_logs(
+    user_id: Optional[int] = None, action: Optional[str] = None, limit: int = 100
+) -> List[Dict[str, Any]]:
     query = {}
+    if user_id:
+        query["user_id"] = user_id
     if action:
         query["action"] = action
-    logs = list(audit_logs_collection.find(query).sort("timestamp", -1).limit(limit))
+
+    logs = audit_logs_collection.find(query).sort("created_at", -1).limit(limit)
+
+    result = []
     for log in logs:
         log["id"] = str(log.pop("_id"))
-    return logs
+        result.append(log)
+
+    return result
