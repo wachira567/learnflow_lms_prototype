@@ -648,7 +648,7 @@ def get_analytics_stats(
     active_users = db.query(Enrollment.user_id).distinct().count()
 
     # Published courses
-    published_courses = db.query(Course).filter(Course.is_published == True).count()
+    published_courses = db.query(Course).filter(Course.is_published).count()
 
     return {
         "total_users": total_users,
@@ -783,5 +783,3 @@ def get_learner_enrollments(
 
     return result
 
-
-from sqlalchemy import func
