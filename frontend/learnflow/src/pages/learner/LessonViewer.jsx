@@ -1,0 +1,361 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import {
+  Play,
+  CheckCircle,
+  Circle,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  X,
+  FileText,
+  Download,
+  MessageCircle,
+  Clock,
+} from 'lucide-react';
+import { courseService } from '../../services/courseService';
+
+const LessonViewer = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [course, setCourse] = useState(null);
+  const [currentLesson, setCurrentLesson] = useState(null);
+  const [progress, setProgress] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [courseData, progressData] = await Promise.all([
+          courseService.getCourseById(id),
+          courseService.getProgress(id),
+        ]);
+        setCourse(courseData);
+        setProgress(progressData);
+        
+        // Set first incomplete lesson or first lesson
+        const firstIncomplete = courseData.lessons?.find(l => !l.completed);
+        setCurrentLesson(firstIncomplete || courseData.lessons?.[0]);
+      } catch (error) {
+        console.error('Error fetching course:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  const handleLessonComplete = async () => {
+    if (!currentLesson) return;
+    
+    setIsMarkingComplete(true);
+    try {
+      const newCompleted = !currentLesson.completed;
+      await courseService.updateProgress(id, currentLesson.id, newCompleted);
+      
+      // Update local state
+      setCurrentLesson({ ...currentLesson, completed: newCompleted });
+      
+      // Update progress
+      const updatedProgress = await courseService.getProgress(id);
+      setProgress(updatedProgress);
+      
+      // Move to next lesson if completing
+      if (newCompleted) {
+        const currentIndex = course.lessons.findIndex(l => l.id === currentLesson.id);
+        const nextLesson = course.lessons[currentIndex + 1];
+        if (nextLesson) {
+          setTimeout(() => setCurrentLesson(nextLesson), 500);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating progress:', error);
+    } finally {
+      setIsMarkingComplete(false);
+    }
+  };
+
+  const handleNextLesson = () => {
+    const currentIndex = course.lessons.findIndex(l => l.id === currentLesson.id);
+    const nextLesson = course.lessons[currentIndex + 1];
+    if (nextLesson) {
+      setCurrentLesson(nextLesson);
+    }
+  };
+
+  const handlePrevLesson = () => {
+    const currentIndex = course.lessons.findIndex(l => l.id === currentLesson.id);
+    const prevLesson = course.lessons[currentIndex - 1];
+    if (prevLesson) {
+      setCurrentLesson(prevLesson);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="w-12 h-12 border-4 border-primary-200 dark:border-primary-800 border-t-primary-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!course || !currentLesson) {
+    return (
+      <div className="text-center py-16">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+          Course not found
+        </h2>
+        <button
+          onClick={() => navigate('/courses')}
+          className="text-primary-600 hover:text-primary-700"
+        >
+          Browse all courses
+        </button>
+      </div>
+    );
+  }
+
+  const currentIndex = course.lessons.findIndex(l => l.id === currentLesson.id);
+  const completedLessons = progress?.completedLessons?.length || 0;
+  const totalLessons = course.lessons.length;
+  const progressPercentage = (completedLessons / totalLessons) * 100;
+
+  return (
+    <div className="h-screen flex flex-col -m-4 sm:-m-6 lg:-m-8">
+      {/* Top bar */}
+      <div className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => navigate(`/courses/${id}`)}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+          </button>
+          <div>
+            <h1 className="font-semibold text-slate-900 dark:text-white line-clamp-1">
+              {course.title}
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Lesson {currentIndex + 1} of {totalLessons}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-4">
+          {/* Progress */}
+          <div className="hidden sm:flex items-center space-x-3">
+            <div className="w-32 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full transition-all duration-500"
+                style={{ width: `${progressPercentage}%` }}
+              />
+            </div>
+            <span className="text-sm text-slate-600 dark:text-slate-400">
+              {Math.round(progressPercentage)}%
+            </span>
+          </div>
+
+          {/* Mobile menu toggle */}
+          <button
+            onClick={() => setShowSidebar(!showSidebar)}
+            className="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          >
+            {showSidebar ? (
+              <X className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            ) : (
+              <Menu className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Video/Content area */}
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          {/* Video player placeholder */}
+          <div className="aspect-video bg-slate-900 flex items-center justify-center relative">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mb-4 cursor-pointer hover:bg-white/20 transition-colors">
+                <Play className="w-10 h-10 text-white ml-1" />
+              </div>
+              <p className="text-white/60">Video player would be here</p>
+            </div>
+            
+            {/* Lesson info overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+              <h2 className="text-white font-semibold text-lg">{currentLesson.title}</h2>
+              <div className="flex items-center space-x-2 text-white/60 text-sm mt-1">
+                <Clock className="w-4 h-4" />
+                <span>{currentLesson.duration}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Lesson content */}
+          <div className="flex-1 p-6">
+            <div className="max-w-3xl mx-auto">
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
+                {currentLesson.title}
+              </h3>
+              
+              <div className="prose dark:prose-invert max-w-none">
+                <p className="text-slate-600 dark:text-slate-400">
+                  This is where the lesson content would be displayed. In a real application,
+                  this would include the video player, lesson notes, downloadable resources,
+                  and interactive elements.
+                </p>
+              </div>
+
+              {/* Resources */}
+              <div className="mt-8">
+                <h4 className="font-semibold text-slate-900 dark:text-white mb-4">
+                  Lesson Resources
+                </h4>
+                <div className="space-y-2">
+                  <a
+                    href="#"
+                    className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <FileText className="w-5 h-5 text-primary-600" />
+                    <span className="text-slate-700 dark:text-slate-300">Lesson Slides.pdf</span>
+                    <Download className="w-4 h-4 text-slate-400 ml-auto" />
+                  </a>
+                  <a
+                    href="#"
+                    className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <FileText className="w-5 h-5 text-primary-600" />
+                    <span className="text-slate-700 dark:text-slate-300">Exercise Files.zip</span>
+                    <Download className="w-4 h-4 text-slate-400 ml-auto" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Discussion */}
+              <div className="mt-8">
+                <h4 className="font-semibold text-slate-900 dark:text-white mb-4">
+                  Discussion
+                </h4>
+                <button className="flex items-center space-x-2 text-primary-600 hover:text-primary-700">
+                  <MessageCircle className="w-5 h-5" />
+                  <span>Join the discussion</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation buttons */}
+          <div className="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+            <div className="max-w-3xl mx-auto flex items-center justify-between">
+              <button
+                onClick={handlePrevLesson}
+                disabled={currentIndex === 0}
+                className="flex items-center space-x-2 px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-5 h-5" />
+                <span className="hidden sm:inline">Previous</span>
+              </button>
+
+              <button
+                onClick={handleLessonComplete}
+                disabled={isMarkingComplete}
+                className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all ${
+                  currentLesson.completed
+                    ? 'bg-success-100 dark:bg-success-900/30 text-success-700 dark:text-success-300'
+                    : 'bg-primary-600 text-white hover:bg-primary-700'
+                }`}
+              >
+                {isMarkingComplete ? (
+                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : currentLesson.completed ? (
+                  <>
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Completed</span>
+                  </>
+                ) : (
+                  <>
+                    <Circle className="w-5 h-5" />
+                    <span>Mark as Complete</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleNextLesson}
+                disabled={currentIndex === totalLessons - 1}
+                className="flex items-center space-x-2 px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar - Lesson list */}
+        <motion.div
+          initial={{ x: 300 }}
+          animate={{ x: showSidebar ? 0 : 300 }}
+          className={`${showSidebar ? 'block' : 'hidden'} lg:block w-80 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 overflow-y-auto`}
+        >
+          <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+            <h3 className="font-semibold text-slate-900 dark:text-white">Course Content</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {completedLessons} of {totalLessons} completed
+            </p>
+          </div>
+
+          <div className="divide-y divide-slate-200 dark:divide-slate-700">
+            {course.lessons.map((lesson, index) => (
+              <button
+                key={lesson.id}
+                onClick={() => setCurrentLesson(lesson)}
+                className={`w-full p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
+                  currentLesson.id === lesson.id
+                    ? 'bg-primary-50 dark:bg-primary-900/20 border-l-4 border-primary-600'
+                    : 'border-l-4 border-transparent'
+                }`}
+              >
+                <div className="flex items-start space-x-3">
+                  <div className={`mt-0.5 ${
+                    lesson.completed
+                      ? 'text-success-500'
+                      : 'text-slate-400 dark:text-slate-500'
+                  }`}>
+                    {lesson.completed ? (
+                      <CheckCircle className="w-5 h-5" />
+                    ) : (
+                      <Circle className="w-5 h-5" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium text-sm line-clamp-2 ${
+                      currentLesson.id === lesson.id
+                        ? 'text-primary-700 dark:text-primary-400'
+                        : 'text-slate-700 dark:text-slate-300'
+                    }`}>
+                      {index + 1}. {lesson.title}
+                    </p>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Play className="w-3 h-3 text-slate-400" />
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {lesson.duration}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+export default LessonViewer;
