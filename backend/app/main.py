@@ -3,11 +3,16 @@ Main FastAPI Application for LearnFlow
 This is the entry point for the backend API
 """
 
+import os
 from datetime import datetime
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
+from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -61,6 +66,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+
+# Rate limit exceeded handler
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={
+            "detail": "Rate limit exceeded. Please try again later.",
+            "retry_after": exc.detail
+        },
+        headers={"Retry-After": str(exc.detail)}
+    )
+
 # Security scheme
 security = HTTPBearer()
 
@@ -78,9 +99,11 @@ def read_root():
 
 
 @app.post("/api/auth/register", response_model=Token)
-def register(user_data: UserCreate, request: Request, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
     """
     Register a new user (learner or admin)
+    Rate limited to 5 requests per minute
     """
     # Check if user already exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
@@ -126,9 +149,11 @@ def register(user_data: UserCreate, request: Request, db: Session = Depends(get_
 
 
 @app.post("/api/auth/login", response_model=Token)
-def login(credentials: UserLogin, request: Request, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, credentials: UserLogin, db: Session = Depends(get_db)):
     """
     Login user and return JWT token
+    Rate limited to 10 requests per minute to prevent brute force
     """
     # Find user by email
     user = db.query(User).filter(User.email == credentials.email).first()

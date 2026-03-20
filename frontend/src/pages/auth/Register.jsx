@@ -62,9 +62,36 @@ const Register = () => {
     return true;
   };
 
+  // Password strength checker
+  const getPasswordStrength = (password) => {
+    let strength = 0;
+    const checks = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      digit: /[0-9]/.test(password),
+    };
+    Object.values(checks).forEach(Boolean) && strength++;
+    return { checks, strength: Object.values(checks).filter(Boolean).length };
+  };
+
+  const passwordStrength = getPasswordStrength(formData.password);
+
   const validateStep2 = () => {
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters');
+      return false;
+    }
+    if (!/[A-Z]/.test(formData.password)) {
+      setError('Password must contain at least one uppercase letter');
+      return false;
+    }
+    if (!/[a-z]/.test(formData.password)) {
+      setError('Password must contain at least one lowercase letter');
+      return false;
+    }
+    if (!/[0-9]/.test(formData.password)) {
+      setError('Password must contain at least one digit');
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
@@ -262,9 +289,41 @@ const Register = () => {
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Must be at least 8 characters
-                  </p>
+                  {/* Password strength indicator */}
+                  {formData.password && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4].map((level) => (
+                          <div
+                            key={level}
+                            className={`h-1 flex-1 rounded-full ${
+                              passwordStrength.strength >= level
+                                ? passwordStrength.strength <= 2
+                                  ? 'bg-danger-500'
+                                  : passwordStrength.strength === 3
+                                  ? 'bg-warning-500'
+                                  : 'bg-success-500'
+                                : 'bg-slate-200 dark:bg-slate-700'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        <span className={passwordStrength.checks.length ? 'text-success-600' : 'text-slate-500'}>
+                          ✓ 8+ chars
+                        </span>
+                        <span className={passwordStrength.checks.uppercase ? 'text-success-600' : 'text-slate-500'}>
+                          ✓ Uppercase
+                        </span>
+                        <span className={passwordStrength.checks.lowercase ? 'text-success-600' : 'text-slate-500'}>
+                          ✓ Lowercase
+                        </span>
+                        <span className={passwordStrength.checks.digit ? 'text-success-600' : 'text-slate-500'}>
+                          ✓ Number
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>

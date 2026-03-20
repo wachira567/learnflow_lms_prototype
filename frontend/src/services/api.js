@@ -45,6 +45,12 @@ export const apiRequest = async (endpoint, options = {}) => {
         throw new Error('Resource not found.');
       }
       
+      if (response.status === 429) {
+        // Rate limited - get retry-after header
+        const retryAfter = response.headers.get('Retry-After') || 60;
+        throw new Error(`Too many requests. Please wait ${retryAfter} seconds before trying again.`);
+      }
+      
       if (response.status >= 500) {
         throw new Error('Server error. Please try again later.');
       }
