@@ -3,7 +3,6 @@ Main FastAPI Application for LearnFlow
 This is the entry point for the backend API
 """
 
-import os
 from datetime import datetime
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Request
