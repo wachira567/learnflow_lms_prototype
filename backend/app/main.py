@@ -5,7 +5,7 @@ This is the entry point for the backend API
 
 from datetime import datetime
 from typing import List, Optional
-from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from fastapi.responses import JSONResponse
@@ -14,6 +14,10 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from app.database import get_db, engine, Base
 from app.models import User, Course, Enrollment, AuditLog
@@ -29,6 +33,7 @@ from app.schemas import (
     CourseListResponse,
     LessonCreate,
     ProgressUpdate,
+    GoogleCallbackRequest,
 )
 from app.auth import (
     verify_password,
@@ -37,6 +42,8 @@ from app.auth import (
     get_current_user,
     require_admin,
     log_audit_event,
+    get_google_oauth_url,
+    authenticate_google_user,
 )
 from app.mongo_service import (
     create_lesson,
@@ -49,12 +56,22 @@ from app.mongo_service import (
 # Create database tables (in production, use Alembic migrations)
 Base.metadata.create_all(bind=engine)
 
+# ============== FASTAPI APP SETUP ==============
+
 # Initialize FastAPI app
 app = FastAPI(
     title="LearnFlow API",
     description="Learning Management System API with dual database architecture",
     version="1.0.0",
 )
+
+from fastapi.responses import JSONResponse
+import traceback
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    err_trace = traceback.format_exc()
+    return JSONResponse(status_code=500, content={"message": "Internal Server Error", "trace": err_trace, "error": str(exc)})
 
 # Configure CORS
 app.add_middleware(
@@ -69,6 +86,7 @@ app.add_middleware(
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 
+
 # Rate limit exceeded handler
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
@@ -76,10 +94,11 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
         status_code=429,
         content={
             "detail": "Rate limit exceeded. Please try again later.",
-            "retry_after": exc.detail
+            "retry_after": exc.detail,
         },
-        headers={"Retry-After": str(exc.detail)}
+        headers={"Retry-After": str(exc.detail)},
     )
+
 
 # Security scheme
 security = HTTPBearer()
@@ -212,6 +231,51 @@ def update_profile(
     db.refresh(current_user)
 
     return current_user
+
+
+# ============== GOOGLE OAUTH ENDPOINTS ==============
+
+@app.get("/api/auth/google/url")
+def get_google_auth_url():
+    """
+    Get Google OAuth authorization URL
+    """
+    google_url = get_google_oauth_url()
+    return {"url": google_url}
+
+@app.post("/api/auth/google/callback", response_model=Token)
+@limiter.limit("10/minute")
+async def google_oauth_callback(
+    request: Request,
+    google_request: GoogleCallbackRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Handle Google OAuth callback and authenticate/create user
+    Rate limited to 10 requests per minute
+    """
+    try:
+        user, access_token = await authenticate_google_user(db, google_request.code)
+
+        # Log the OAuth login
+        log_audit_event(
+            db=db,
+            action="google_oauth_login",
+            user_id=user.id,
+            resource_type="user",
+            resource_id=user.id,
+            request=request,
+            details=f"Logged in via Google OAuth as {user.email}",
+        )
+
+        return {"access_token": access_token, "token_type": "bearer"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Google OAuth failed: {str(e)}",
+        )
 
 
 # ============== USER ENDPOINTS (Admin only) ==============
@@ -806,4 +870,3 @@ def get_learner_enrollments(
             )
 
     return result
-

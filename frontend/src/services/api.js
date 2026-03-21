@@ -57,7 +57,7 @@ export const apiRequest = async (endpoint, options = {}) => {
       
       // Try to get error message from response
       const errorData = await response.json().catch(() => null);
-      throw new Error(errorData?.message || `Request failed with status ${response.status}`);
+      throw new Error(errorData?.detail || errorData?.message || `Request failed with status ${response.status}`);
     }
     
     // Check if response has content

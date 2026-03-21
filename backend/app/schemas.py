@@ -91,6 +91,15 @@ class TokenData(BaseModel):
     role: Optional[UserRole] = None
 
 
+class GoogleCallbackRequest(BaseModel):
+    """Schema for Google OAuth callback request"""
+
+    code: str
+
+
+
+
+
 # ============== COURSE SCHEMAS ==============
 
 

@@ -108,6 +108,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Check if user has specific role
+  const handleOAuthSuccess = (token, userData) => {
+    localStorage.setItem("learnflow-token", token);
+    setUser(userData);
+    setIsAuthenticated(true);
+    setError(null);
+  };
+
+  // Check if user has specific role
   const hasRole = (role) => {
     return user?.role === role;
   };
@@ -131,6 +139,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    handleOAuthSuccess,
     hasRole,
     isAdmin,
     isLearner,

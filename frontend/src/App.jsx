@@ -16,6 +16,7 @@ import Contact from "./pages/public/Contact";
 // Auth pages
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import GoogleCallback from "./pages/auth/GoogleCallback";
 
 // Learner pages
 import LearnerDashboard from "./pages/learner/Dashboard";
@@ -44,6 +45,7 @@ function App() {
         {/* Auth routes - accessible to guests only */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/auth/google/callback" element={<GoogleCallback />} />
 
         {/* Public routes with main layout - accessible to everyone */}
         <Route element={<MainLayout />}>

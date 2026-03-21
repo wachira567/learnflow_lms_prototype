@@ -213,3 +213,6 @@ For Python import resolution:
 3. Choose `backend/venv/bin/python`
 
 Or reload the window: `Ctrl+Shift+P` → "Developer: Reload Window"
+
+. /home/wachira/Documents/Kbc\ project/Kbc_Assessment/learnflow_app/backend/venv/bin/activate && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+

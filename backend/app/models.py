@@ -25,7 +25,7 @@ class User(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)
+    hashed_password = Column(String(255), nullable=True)  # Nullable for OAuth users
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     role = Column(Enum(UserRole), default=UserRole.LEARNER, nullable=False)
@@ -37,6 +37,11 @@ class User(Base):
     
     # Relationship with courses created by this user (if admin)
     created_courses = relationship("Course", back_populates="instructor")
+    
+    @property
+    def full_name(self):
+        """Return full name"""
+        return f"{self.first_name} {self.last_name}"
     
     def __repr__(self):
         return f"<User {self.email}>"
