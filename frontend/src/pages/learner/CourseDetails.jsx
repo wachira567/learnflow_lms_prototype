@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   Play,
   Clock,
@@ -22,6 +23,8 @@ const CourseDetails = () => {
   const [progress, setProgress] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -71,7 +74,7 @@ const CourseDetails = () => {
     <div className="space-y-8">
       {/* Back button */}
       <Link
-        to="/courses"
+        to={isAdmin ? '/admin/courses' : '/courses'}
         className="inline-flex items-center text-slate-600 dark:text-slate-400 hover:text-primary-600 transition-colors"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -316,7 +319,7 @@ const CourseDetails = () => {
 
             {/* CTA Button */}
             <Link
-              to={`/courses/${course.id}/learn`}
+              to={isAdmin ? `/admin/courses/${course.id}/preview/learn` : `/courses/${course.id}/learn`}
               className="w-full py-4 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-all duration-300 flex items-center justify-center space-x-2 hover:shadow-lg hover:shadow-primary-500/30"
             >
               <Play className="w-5 h-5" />
@@ -343,15 +346,7 @@ const CourseDetails = () => {
               </ul>
             </div>
 
-            {/* Price */}
-            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 dark:text-slate-400">Price</span>
-                <span className="text-3xl font-bold text-slate-900 dark:text-white">
-                  KSh {course.price}
-                </span>
-              </div>
-            </div>
+
           </div>
         </div>
       </motion.div>

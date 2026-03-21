@@ -9,10 +9,12 @@ export const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
   
   // Default headers
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
+  const headers = { ...options.headers };
+  
+  // Only set Content-Type to JSON if it's not explicitly omitted (like for FormData uploads)
+  if (!options.omitContentType) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  }
   
   // Add auth token if available
   const token = getToken();
@@ -52,7 +54,18 @@ export const apiRequest = async (endpoint, options = {}) => {
       }
       
       if (response.status >= 500) {
-        throw new Error('Server error. Please try again later.');
+        let errorMsg = 'Server error. Please try again later.';
+        try {
+          const errorData = await response.json();
+          if (typeof errorData.detail === 'string') {
+            errorMsg = errorData.detail;
+          } else if (errorData.detail && errorData.detail[0] && errorData.detail[0].msg) {
+            errorMsg = errorData.detail[0].msg;
+          }
+        } catch (e) {
+          // Keep generic message if json parsing fails
+        }
+        throw new Error(errorMsg);
       }
       
       // Try to get error message from response
@@ -96,6 +109,16 @@ export const api = {
   }),
   
   delete: (endpoint) => apiRequest(endpoint, { method: 'DELETE' }),
+  
+  upload: (endpoint, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiRequest(endpoint, {
+      method: 'POST',
+      body: formData,
+      omitContentType: true, // Let the browser set the boundary headers automatically
+    });
+  },
 };
 
 export default api;

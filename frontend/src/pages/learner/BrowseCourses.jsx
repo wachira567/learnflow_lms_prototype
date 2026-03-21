@@ -276,9 +276,6 @@ const BrowseCourses = () => {
                           </span>
                         </div>
                       </div>
-                      <span className="font-semibold text-primary-600">
-                        KSh {course.price}
-                      </span>
                     </div>
                   </div>
                 </div>

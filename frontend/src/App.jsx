@@ -79,6 +79,8 @@ function App() {
             <Route path="/admin/users" element={<UserManagement />} />
             <Route path="/admin/analytics" element={<Analytics />} />
             <Route path="/admin/profile" element={<Profile />} />
+            <Route path="/admin/courses/:id/preview" element={<CourseDetails />} />
+            <Route path="/admin/courses/:id/preview/learn" element={<LessonViewer />} />
           </Route>
         </Route>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Play,
@@ -15,6 +15,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { courseService } from '../../services/courseService';
+import { useAuth } from '../../contexts/AuthContext';
 
 const LessonViewer = () => {
   const { id } = useParams();
@@ -25,6 +26,10 @@ const LessonViewer = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showSidebar, setShowSidebar] = useState(true);
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const [searchParams] = useSearchParams();
+  const lessonIdParam = searchParams.get('lesson');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,9 +41,15 @@ const LessonViewer = () => {
         setCourse(courseData);
         setProgress(progressData);
         
-        // Set first incomplete lesson or first lesson
-        const firstIncomplete = courseData.lessons?.find(l => !l.completed);
-        setCurrentLesson(firstIncomplete || courseData.lessons?.[0]);
+        // Set specific lesson if provided, else first incomplete, else first lesson
+        let targetLesson = null;
+        if (lessonIdParam) {
+           targetLesson = courseData.lessons?.find(l => l.id === lessonIdParam);
+        }
+        if (!targetLesson) {
+           targetLesson = courseData.lessons?.find(l => !l.completed) || courseData.lessons?.[0];
+        }
+        setCurrentLesson(targetLesson);
       } catch (error) {
         console.error('Error fetching course:', error);
       } finally {
@@ -110,7 +121,7 @@ const LessonViewer = () => {
           Course not found
         </h2>
         <button
-          onClick={() => navigate('/courses')}
+          onClick={() => navigate(isAdmin ? '/admin/courses' : '/courses')}
           className="text-primary-600 hover:text-primary-700"
         >
           Browse all courses
@@ -130,7 +141,7 @@ const LessonViewer = () => {
       <div className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4">
         <div className="flex items-center space-x-4">
           <button
-            onClick={() => navigate(`/courses/${id}`)}
+            onClick={() => navigate(isAdmin ? `/admin/courses/${id}/preview` : `/courses/${id}`)}
             className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
           >
             <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
@@ -177,14 +188,31 @@ const LessonViewer = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Video/Content area */}
         <div className="flex-1 flex flex-col overflow-y-auto">
-          {/* Video player placeholder */}
-          <div className="aspect-video bg-slate-900 flex items-center justify-center relative">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mb-4 cursor-pointer hover:bg-white/20 transition-colors">
-                <Play className="w-10 h-10 text-white ml-1" />
+          {/* Video / Media Player */}
+          <div className="aspect-video bg-slate-900 flex flex-col items-center justify-center relative group">
+            {currentLesson.type === 'video' && currentLesson.content?.includes('cloudinary.com') ? (
+              <video 
+                controls 
+                className="w-full h-full object-contain bg-black"
+                src={currentLesson.content}
+                poster={currentLesson.content.replace('.mp4', '.jpg').replace('.webm', '.jpg')}
+              >
+                Your browser does not support the video tag.
+              </video>
+            ) : currentLesson.type === 'video' ? (
+              <div className="text-center">
+                <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mb-4 cursor-pointer hover:bg-white/20 transition-colors">
+                  <Play className="w-10 h-10 text-white ml-1" />
+                </div>
+                <p className="text-white/60">No valid video source found.</p>
               </div>
-              <p className="text-white/60">Video player would be here</p>
-            </div>
+            ) : (
+                <div className="p-8 text-center text-white">
+                  <FileText className="w-16 h-16 text-primary-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold mb-2">Text Lesson Active</h3>
+                  <p className="text-white/60">Read the course contents below.</p>
+                </div>
+            )}
             
             {/* Lesson info overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
@@ -204,11 +232,17 @@ const LessonViewer = () => {
               </h3>
               
               <div className="prose dark:prose-invert max-w-none">
-                <p className="text-slate-600 dark:text-slate-400">
-                  This is where the lesson content would be displayed. In a real application,
-                  this would include the video player, lesson notes, downloadable resources,
-                  and interactive elements.
-                </p>
+                {currentLesson.type === 'text' ? (
+                  <div className="whitespace-pre-wrap text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm leading-relaxed">
+                    {currentLesson.content || "Empty content"}
+                  </div>
+                ) : (
+                  <p className="text-slate-600 dark:text-slate-400">
+                    {currentLesson.content && !currentLesson.content.includes('http') ? currentLesson.content : (
+                      "Watch the attached video lecture above. Ensure you fully understand the topic before marking it as complete."
+                    )}
+                  </p>
+                )}
               </div>
 
               {/* Resources */}

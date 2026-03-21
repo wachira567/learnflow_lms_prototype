@@ -5,7 +5,7 @@ This is the entry point for the backend API
 
 from datetime import datetime
 from typing import List, Optional
-from fastapi import FastAPI, Depends, HTTPException, status, Request, Body
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Body, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from fastapi.responses import JSONResponse
@@ -32,6 +32,7 @@ from app.schemas import (
     CourseUpdate,
     CourseListResponse,
     LessonCreate,
+    LessonUpdate,
     ProgressUpdate,
     GoogleCallbackRequest,
 )
@@ -45,9 +46,12 @@ from app.auth import (
     get_google_oauth_url,
     authenticate_google_user,
 )
+from app.cloudinary_service import upload_media
 from app.mongo_service import (
     create_lesson,
     get_course_lessons,
+    update_lesson,
+    delete_lesson,
     get_user_progress,
     update_lesson_progress,
     get_user_all_progress,
@@ -385,7 +389,24 @@ def get_course(course_id: int, db: Session = Depends(get_db)):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
-    return course
+        
+    course_data = course.to_dict()
+    
+    # Enrich course response with MongoDB lessons and instructor details
+    lessons = get_course_lessons(course_id)
+    course_data["lessons"] = lessons
+    course_data["lessonsCount"] = len(lessons)
+    
+    instructor = db.query(User).filter(User.id == course.instructor_id).first()
+    if instructor:
+        course_data["instructor"] = f"{instructor.first_name} {instructor.last_name}"
+        course_data["instructorAvatar"] = instructor.avatar_url
+    
+    # Mock remaining UI aggregate values
+    course_data["rating"] = 4.5
+    course_data["enrolledStudents"] = 0
+    
+    return course_data
 
 
 @app.post("/api/courses", response_model=CourseResponse)
@@ -554,6 +575,69 @@ def get_lessons(course_id: int, db: Session = Depends(get_db)):
 
     lessons = get_course_lessons(course_id)
     return lessons
+
+
+@app.put("/api/courses/{course_id}/lessons/{lesson_id}")
+def edit_lesson(
+    course_id: int,
+    lesson_id: str,
+    lesson_data: LessonUpdate,
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Update a lesson (Admin only)
+    """
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    success = update_lesson(lesson_id, lesson_data.dict(exclude_unset=True))
+    if not success:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    log_audit_event(
+        db=db,
+        action="lesson_updated",
+        user_id=current_user.id,
+        resource_type="lesson",
+        resource_id=lesson_id,
+        request=request,
+    )
+
+    return {"message": "Lesson updated successfully"}
+
+
+@app.delete("/api/courses/{course_id}/lessons/{lesson_id}")
+def remove_lesson(
+    course_id: int,
+    lesson_id: str,
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Delete a lesson (Admin only)
+    """
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    success = delete_lesson(lesson_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    log_audit_event(
+        db=db,
+        action="lesson_deleted",
+        user_id=current_user.id,
+        resource_type="lesson",
+        resource_id=lesson_id,
+        request=request,
+    )
+
+    return {"message": "Lesson deleted successfully"}
 
 
 # ============== PROGRESS ENDPOINTS (MongoDB) ==============
@@ -777,6 +861,28 @@ def get_category_distribution(
         )
 
     return result
+
+
+# ============== MEDIA UPLOAD ENDPOINTS ==============
+
+@app.post("/api/upload")
+async def upload_course_media(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_admin)
+):
+    """
+    Upload media to Cloudinary (Admins only)
+    """
+    try:
+        # Pass the file to Cloudinary service
+        result = upload_media(file)
+        return result
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to process upload: {str(e)}"
+        )
 
 
 # ============== LEARNER DASHBOARD ENDPOINTS ==============

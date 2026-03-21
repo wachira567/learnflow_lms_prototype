@@ -153,6 +153,14 @@ class CourseResponse(CourseBase):
     is_published: bool
     created_at: datetime
     updated_at: datetime
+    
+    # Enriched fields for frontend
+    instructor: Optional[str] = "Instructor"
+    instructorAvatar: Optional[str] = None
+    rating: Optional[float] = 4.5
+    enrolledStudents: Optional[int] = 0
+    lessonsCount: Optional[int] = 0
+    lessons: Optional[List[dict]] = []
 
     class Config:
         from_attributes = True

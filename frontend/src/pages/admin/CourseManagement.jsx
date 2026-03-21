@@ -248,9 +248,7 @@ const CourseManagement = () => {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Students
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Price
-                  </th>
+                  
                   <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Actions
                   </th>
@@ -265,7 +263,7 @@ const CourseManagement = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-4">
                         <img
-                          src={course.thumbnail}
+                          src={course.thumbnail_url || course.thumbnail}
                           alt={course.title}
                           className="w-12 h-12 rounded-lg object-cover"
                         />
@@ -298,17 +296,15 @@ const CourseManagement = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
-                      {course.enrolledStudents.toLocaleString()}
+                      {(course.enrolledStudents || 0).toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
-                      KSh {course.price}
-                    </td>
+
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-2">
                         <Link
-                          to={`/courses/${course.id}`}
+                          to={`/admin/courses/${course.id}/preview`}
                           className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                          title="View"
+                          title="View Course Preview"
                         >
                           <Eye className="w-4 h-4 text-slate-500" />
                         </Link>
@@ -456,23 +452,7 @@ const CourseManagement = () => {
                       placeholder="e.g., 12 hours"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Price (KSh)
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) =>
-                        setFormData({ ...formData, price: e.target.value })
-                      }
-                      required
-                      min="0"
-                      step="0.01"
-                      className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-                      placeholder="49.99"
-                    />
-                  </div>
+
                 </div>
 
                 <div className="flex justify-end space-x-3">

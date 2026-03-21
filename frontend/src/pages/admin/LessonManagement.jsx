@@ -13,8 +13,10 @@ import {
   X,
   CheckCircle,
   Video,
+  UploadCloud,
 } from 'lucide-react';
 import { courseService } from '../../services/courseService';
+import { api } from '../../services/api';
 
 const LessonManagement = () => {
   const { id } = useParams();
@@ -26,6 +28,7 @@ const LessonManagement = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [notification, setNotification] = useState(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -53,7 +56,13 @@ const LessonManagement = () => {
   const handleCreateLesson = async (e) => {
     e.preventDefault();
     try {
-      await courseService.addLesson(id, formData);
+      if (selectedLesson) {
+        await api.put(`/courses/${id}/lessons/${selectedLesson.id}`, formData);
+        showNotification('Lesson updated successfully!');
+      } else {
+        await courseService.addLesson(id, formData);
+        showNotification('Lesson added successfully!');
+      }
       setShowCreateModal(false);
       setFormData({
         title: '',
@@ -61,8 +70,8 @@ const LessonManagement = () => {
         duration: '',
         content: '',
       });
+      setSelectedLesson(null);
       fetchCourse();
-      showNotification('Lesson added successfully!');
     } catch (error) {
       console.error('Error creating lesson:', error);
       showNotification('Failed to add lesson', 'error');
@@ -73,7 +82,7 @@ const LessonManagement = () => {
     if (!selectedLesson) return;
     
     try {
-      // In a real app, you would call an API to delete the lesson
+      await api.delete(`/courses/${id}/lessons/${selectedLesson.id}`);
       setShowDeleteModal(false);
       setSelectedLesson(null);
       fetchCourse();
@@ -87,6 +96,23 @@ const LessonManagement = () => {
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handleMediaUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setUploadingMedia(true);
+    try {
+      const result = await api.upload('/upload', file);
+      setFormData(prev => ({ ...prev, content: result.url }));
+      showNotification('Media uploaded successfully!');
+    } catch (error) {
+      console.error('Upload failed:', error);
+      showNotification('Failed to upload media. Ensure Cloudinary settings are configured in backend.', 'error');
+    } finally {
+      setUploadingMedia(false);
+    }
   };
 
   if (isLoading) {
@@ -159,7 +185,11 @@ const LessonManagement = () => {
             </p>
           </div>
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              setSelectedLesson(null);
+              setFormData({ title: '', type: 'video', duration: '', content: '' });
+              setShowCreateModal(true);
+            }}
             className="flex items-center justify-center space-x-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
@@ -221,6 +251,23 @@ const LessonManagement = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
+                    onClick={() => navigate(`/admin/courses/${id}/preview/learn?lesson=${lesson.id}`)}
+                    className="p-2 hover:bg-primary-100 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
+                    title="Preview"
+                  >
+                    <Play className="w-4 h-4 text-primary-500" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedLesson(lesson);
+                      setFormData({
+                        title: lesson.title,
+                        type: lesson.type,
+                        duration: lesson.duration,
+                        content: lesson.content || '',
+                      });
+                      setShowCreateModal(true);
+                    }}
                     className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                     title="Edit"
                   >
@@ -260,7 +307,7 @@ const LessonManagement = () => {
             >
               <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
-                  Add New Lesson
+                  {selectedLesson ? 'Edit Lesson' : 'Add New Lesson'}
                 </h3>
                 <button
                   onClick={() => setShowCreateModal(false)}
@@ -318,12 +365,23 @@ const LessonManagement = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     Content URL / Body
                   </label>
+                  {formData.type === 'video' && (
+                     <div className="mb-3 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-4 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <label className="cursor-pointer flex flex-col items-center justify-center space-y-2">
+                           <UploadCloud className={`w-8 h-8 ${uploadingMedia ? "text-slate-400 animate-pulse" : "text-primary-500"}`} />
+                           <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                             {uploadingMedia ? "Uploading to Cloudinary... please wait" : "Click to select a video/image file"}
+                           </span>
+                           <input type="file" accept="video/*,image/*" className="hidden" onChange={handleMediaUpload} disabled={uploadingMedia} />
+                        </label>
+                     </div>
+                  )}
                   <textarea
                     value={formData.content}
                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                     rows={4}
                     className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all resize-none"
-                    placeholder={formData.type === 'video' ? 'Enter video URL' : 'Enter lesson content'}
+                    placeholder={formData.type === 'video' ? 'Enter video URL or upload above' : 'Enter lesson content'}
                   />
                 </div>
 
@@ -339,7 +397,7 @@ const LessonManagement = () => {
                     type="submit"
                     className="px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors"
                   >
-                    Add Lesson
+                    {selectedLesson ? 'Save Changes' : 'Add Lesson'}
                   </button>
                 </div>
               </form>

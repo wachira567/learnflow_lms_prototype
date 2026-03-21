@@ -99,7 +99,8 @@ class Course(Base):
             "thumbnail_url": self.thumbnail_url,
             "instructor_id": self.instructor_id,
             "is_published": self.is_published,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
         }
 
 
