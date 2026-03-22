@@ -13,6 +13,11 @@ export const learnerService = {
     const response = await api.get("/learner/enrollments");
     return response;
   },
+
+  // Get learner's private messages
+  getMyMessages: async () => {
+    return await api.get("/my-messages");
+  },
 };
 
 export default learnerService;

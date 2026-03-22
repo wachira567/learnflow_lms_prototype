@@ -1,50 +1,134 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, Users, BookOpen, GraduationCap } from "lucide-react";
+import { 
+  Users, 
+  BookOpen, 
+  GraduationCap, 
+  FileText,
+  Filter,
+  Download,
+  Calendar,
+  CheckCircle,
+  Clock,
+  PlayCircle
+} from "lucide-react";
 import analyticsService from "../../services/analyticsService";
+import { courseService } from "../../services/courseService";
 
 const Analytics = () => {
   const [stats, setStats] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("courses");
+  
+  // Filter states
+  const [courseFilters, setCourseFilters] = useState({
+    category: "",
+    level: "",
+    date_from: "",
+    date_to: "",
+  });
+  const [studentFilters, setStudentFilters] = useState({
+    course_id: "",
+    status: "",
+    date_from: "",
+    date_to: "",
+  });
+  const [userFilters, setUserFilters] = useState({
+    role: "",
+    date_from: "",
+    date_to: "",
+  });
+  const [activityFilters, setActivityFilters] = useState({
+    date_from: "",
+    date_to: "",
+  });
+
+  // Report data states
+  const [courseReport, setCourseReport] = useState(null);
+  const [studentReport, setStudentReport] = useState(null);
+  const [userReport, setUserReport] = useState(null);
+  const [activityReport, setActivityReport] = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  
+  // Pagination limit state
+  const [reportLimit, setReportLimit] = useState(10);
 
   useEffect(() => {
-    const fetchAnalytics = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const [statsData, categoriesData] = await Promise.all([
+        const [statsData, categoriesData, coursesData] = await Promise.all([
           analyticsService.getStats(),
           analyticsService.getCategoryDistribution(),
+          courseService.getAllCourses(),
         ]);
         setStats(statsData);
         setCategories(categoriesData);
+        setCourses(coursesData);
       } catch (err) {
         console.error("Failed to fetch analytics:", err);
-        setError("Failed to load analytics data");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAnalytics();
+    fetchData();
   }, []);
 
-  // Category colors
-  const categoryColors = [
-    "bg-primary-500",
-    "bg-secondary-500",
-    "bg-emerald-500",
-    "bg-amber-500",
-    "bg-rose-500",
-    "bg-purple-500",
-    "bg-cyan-500",
-    "bg-orange-500",
-  ];
-
-  const getCategoryColor = (index) => {
-    return categoryColors[index % categoryColors.length];
+  // Generate report functions
+  const generateCourseReport = async () => {
+    setReportLoading(true);
+    try {
+      const data = await analyticsService.getCourseReport(courseFilters);
+      setCourseReport(data);
+    } catch (err) {
+      console.error("Failed to generate course report:", err);
+    } finally {
+      setReportLoading(false);
+    }
   };
+
+  const generateStudentReport = async () => {
+    setReportLoading(true);
+    try {
+      const data = await analyticsService.getStudentReport(studentFilters);
+      setStudentReport(data);
+    } catch (err) {
+      console.error("Failed to generate student report:", err);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const generateUserReport = async () => {
+    setReportLoading(true);
+    try {
+      const data = await analyticsService.getUserReport(userFilters);
+      setUserReport(data);
+    } catch (err) {
+      console.error("Failed to generate user report:", err);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const generateActivityReport = async () => {
+    setReportLoading(true);
+    try {
+      const data = await analyticsService.getActivityReport(activityFilters);
+      setActivityReport(data);
+    } catch (err) {
+      console.error("Failed to generate activity report:", err);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  // Get unique categories and levels for filter dropdowns
+  const uniqueCategories = [...new Set(courses.map(c => c.category).filter(Boolean))];
+  const uniqueLevels = [...new Set(courses.map(c => c.level).filter(Boolean))];
 
   if (loading) {
     return (
@@ -54,42 +138,24 @@ const Analytics = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-600 dark:text-red-400">
-        {error}
-      </div>
-    );
-  }
-
   const statsData = stats
     ? [
         {
           label: "Total Users",
           value: stats.total_users,
-          change: "+12%",
           icon: Users,
           color: "bg-blue-500",
         },
         {
           label: "Total Courses",
           value: stats.total_courses,
-          change: "+8%",
           icon: BookOpen,
           color: "bg-primary-500",
         },
         {
-          label: "Published Courses",
-          value: stats.published_courses,
-          change: "+5%",
-          icon: GraduationCap,
-          color: "bg-emerald-500",
-        },
-        {
           label: "Total Enrollments",
           value: stats.total_enrollments,
-          change: "+15%",
-          icon: TrendingUp,
+          icon: FileText,
           color: "bg-secondary-500",
         },
       ]
@@ -104,10 +170,10 @@ const Analytics = () => {
         transition={{ duration: 0.5 }}
       >
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-          Analytics Dashboard
+          Reports & Analytics
         </h1>
         <p className="text-slate-600 dark:text-slate-400">
-          Track your platform performance and key metrics.
+          Generate detailed reports with filters to analyze your platform data.
         </p>
       </motion.div>
 
@@ -119,31 +185,24 @@ const Analytics = () => {
         className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6"
       >
         {statsData.length > 0 ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 col-span-full">
-            {statsData.map((stat, index) => (
+          statsData.map((stat, index) => (
+            <div
+              key={index}
+              className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700"
+            >
               <div
-                key={index}
-                className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700"
+                className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center mb-4`}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div
-                    className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}
-                  >
-                    <stat.icon className="w-6 h-6 text-white" />
-                  </div>
-                  <span className="text-sm text-emerald-600 font-medium">
-                    {stat.change}
-                  </span>
-                </div>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {stat.value}
-                </p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {stat.label}
-                </p>
+                <stat.icon className="w-6 h-6 text-white" />
               </div>
-            ))}
-          </div>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                {stat.value}
+              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {stat.label}
+              </p>
+            </div>
+          ))
         ) : (
           <div className="col-span-full bg-white dark:bg-slate-800 rounded-xl p-12 shadow-sm border border-slate-200 dark:border-slate-700 text-center">
             <p className="text-slate-500 dark:text-slate-400">
@@ -153,97 +212,592 @@ const Analytics = () => {
         )}
       </motion.div>
 
-      {/* Charts Row - Placeholder for future implementation */}
+      {/* Report Tabs */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="grid lg:grid-cols-2 gap-8"
       >
-        {/* Revenue Chart Placeholder */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Enrollment Trends
-            </h3>
-            <select className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300">
-              <option>Last 6 months</option>
-              <option>Last year</option>
-            </select>
-          </div>
-          <div className="h-64 flex items-center justify-center text-slate-400">
-            <p>Enrollment trend chart will appear here</p>
-          </div>
+        <div className="flex gap-2 mb-6 overflow-x-auto">
+          {[
+            { id: "courses", label: "Course Report", icon: BookOpen },
+            { id: "students", label: "Student Report", icon: Users },
+            { id: "users", label: "User Report", icon: GraduationCap },
+            { id: "activity", label: "Activity Report", icon: Clock },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+                activeTab === tab.id
+                  ? "bg-primary-600 text-white"
+                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* User Growth Chart Placeholder */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-              User Growth
-            </h3>
-            <select className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300">
-              <option>Last 6 months</option>
-              <option>Last year</option>
-            </select>
+        {/* Course Report */}
+        {activeTab === "courses" && (
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                Course Report
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Category
+                  </label>
+                  <select
+                    value={courseFilters.category}
+                    onChange={(e) => setCourseFilters({ ...courseFilters, category: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  >
+                    <option value="">All Categories</option>
+                    {uniqueCategories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Level
+                  </label>
+                  <select
+                    value={courseFilters.level}
+                    onChange={(e) => setCourseFilters({ ...courseFilters, level: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  >
+                    <option value="">All Levels</option>
+                    {uniqueLevels.map((level) => (
+                      <option key={level} value={level}>{level}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Date From
+                  </label>
+                  <input
+                    type="date"
+                    value={courseFilters.date_from}
+                    onChange={(e) => setCourseFilters({ ...courseFilters, date_from: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Date To
+                  </label>
+                  <input
+                    type="date"
+                    value={courseFilters.date_to}
+                    onChange={(e) => setCourseFilters({ ...courseFilters, date_to: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mt-4">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                    Results per page:
+                  </label>
+                  <select
+                    value={reportLimit}
+                    onChange={(e) => setReportLimit(Number(e.target.value))}
+                    className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={30}>30</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+                <button
+                  onClick={generateCourseReport}
+                  disabled={reportLoading}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  <Filter className="w-4 h-4" />
+                  {reportLoading ? "Generating..." : "Generate Report"}
+                </button>
+              </div>
+            </div>
+
+            {/* Course Report Results */}
+            {courseReport && (
+              <div className="p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h4 className="font-semibold text-slate-900 dark:text-white">
+                    Results: {courseReport.total_courses} courses found
+                  </h4>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-700">
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Course</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Category</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Level</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Status</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Enrolled</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Completed</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Rate</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {courseReport.courses.map((course) => (
+                        <tr key={course.id} className="border-b border-slate-100 dark:border-slate-700">
+                          <td className="py-3 px-4 text-sm text-slate-900 dark:text-white">{course.title}</td>
+                          <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">{course.category}</td>
+                          <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">{course.level}</td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-1 text-xs rounded-full ${course.is_published ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'}`}>
+                              {course.is_published ? "Published" : "Draft"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-900 dark:text-white">{course.total_enrollments}</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-900 dark:text-white">{course.completed_enrollments}</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-900 dark:text-white">{course.completion_rate}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="h-64 flex items-center justify-center text-slate-400">
-            <p>User growth chart will appear here</p>
+        )}
+
+        {/* Student Report */}
+        {activeTab === "students" && (
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                Student Report
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Course
+                  </label>
+                  <select
+                    value={studentFilters.course_id}
+                    onChange={(e) => setStudentFilters({ ...studentFilters, course_id: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  >
+                    <option value="">All Courses</option>
+                    {courses.map((course) => (
+                      <option key={course.id} value={course.id}>{course.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={studentFilters.status}
+                    onChange={(e) => setStudentFilters({ ...studentFilters, status: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  >
+                    <option value="">All Statuses</option>
+                    <option value="enrolled">Enrolled</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Date From
+                  </label>
+                  <input
+                    type="date"
+                    value={studentFilters.date_from}
+                    onChange={(e) => setStudentFilters({ ...studentFilters, date_from: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Date To
+                  </label>
+                  <input
+                    type="date"
+                    value={studentFilters.date_to}
+                    onChange={(e) => setStudentFilters({ ...studentFilters, date_to: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mt-4">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                    Results per page:
+                  </label>
+                  <select
+                    value={reportLimit}
+                    onChange={(e) => setReportLimit(Number(e.target.value))}
+                    className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={30}>30</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+                <button
+                  onClick={generateStudentReport}
+                  disabled={reportLoading}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  <Filter className="w-4 h-4" />
+                  {reportLoading ? "Generating..." : "Generate Report"}
+                </button>
+              </div>
+            </div>
+
+            {/* Student Report Results */}
+            {studentReport && (
+              <div className="p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h4 className="font-semibold text-slate-900 dark:text-white">
+                    Results: {studentReport.total_enrollments} enrollments ({studentReport.total_students} unique students)
+                  </h4>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-700">
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Student</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Email</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Course</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Status</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Progress</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Enrolled Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {studentReport.students.map((student) => (
+                        <tr key={student.id} className="border-b border-slate-100 dark:border-slate-700">
+                          <td className="py-3 px-4 text-sm text-slate-900 dark:text-white">{student.student_name}</td>
+                          <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">{student.student_email}</td>
+                          <td className="py-3 px-4 text-sm text-slate-900 dark:text-white">{student.course_title}</td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              student.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                              student.status === 'in_progress' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                              'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                            }`}>
+                              {student.status === 'completed' ? <CheckCircle className="w-3 h-3 inline mr-1" /> :
+                               student.status === 'in_progress' ? <PlayCircle className="w-3 h-3 inline mr-1" /> :
+                               <Clock className="w-3 h-3 inline mr-1" />}
+                              {student.status.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-900 dark:text-white">{student.progress}%</td>
+                          <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">
+                            {student.enrolled_at ? new Date(student.enrolled_at).toLocaleDateString() : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
+
+        {/* User Report */}
+        {activeTab === "users" && (
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                User Report
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Role
+                  </label>
+                  <select
+                    value={userFilters.role}
+                    onChange={(e) => setUserFilters({ ...userFilters, role: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  >
+                    <option value="">All Roles</option>
+                    <option value="admin">Admin</option>
+                    <option value="instructor">Instructor</option>
+                    <option value="learner">Learner</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Date From
+                  </label>
+                  <input
+                    type="date"
+                    value={userFilters.date_from}
+                    onChange={(e) => setUserFilters({ ...userFilters, date_from: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Date To
+                  </label>
+                  <input
+                    type="date"
+                    value={userFilters.date_to}
+                    onChange={(e) => setUserFilters({ ...userFilters, date_to: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 mt-4">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                      Results per page:
+                    </label>
+                    <select
+                      value={reportLimit}
+                      onChange={(e) => setReportLimit(Number(e.target.value))}
+                      className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={30}>30</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={generateUserReport}
+                    disabled={reportLoading}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    <Filter className="w-4 h-4" />
+                    {reportLoading ? "Generating..." : "Generate Report"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* User Report Results */}
+            {userReport && (
+              <div className="p-6">
+                <div className="mb-4">
+                  <h4 className="font-semibold text-slate-900 dark:text-white">
+                    Results: {userReport.total_users} users found
+                  </h4>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-700">
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Name</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Email</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Role</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Status</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Enrolled</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Completed</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Joined</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {userReport.users.map((user) => (
+                        <tr key={user.id} className="border-b border-slate-100 dark:border-slate-700">
+                          <td className="py-3 px-4 text-sm text-slate-900 dark:text-white">{user.full_name || '-'}</td>
+                          <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">{user.email}</td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              user.role === 'admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                              user.role === 'instructor' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                              'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            }`}>
+                              {user.role}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-1 text-xs rounded-full ${user.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                              {user.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-900 dark:text-white">{user.total_courses_enrolled}</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-900 dark:text-white">{user.courses_completed}</td>
+                          <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">
+                            {user.created_at ? new Date(user.created_at).toLocaleDateString() : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Activity Report */}
+        {activeTab === "activity" && (
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                Activity Report
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Date From
+                  </label>
+                  <input
+                    type="date"
+                    value={activityFilters.date_from}
+                    onChange={(e) => setActivityFilters({ ...activityFilters, date_from: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Date To
+                  </label>
+                  <input
+                    type="date"
+                    value={activityFilters.date_to}
+                    onChange={(e) => setActivityFilters({ ...activityFilters, date_to: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 mt-4">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                      Results per page:
+                    </label>
+                    <select
+                      value={reportLimit}
+                      onChange={(e) => setReportLimit(Number(e.target.value))}
+                      className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={30}>30</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={generateActivityReport}
+                    disabled={reportLoading}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    <Filter className="w-4 h-4" />
+                    {reportLoading ? "Generating..." : "Generate Report"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Activity Report Results */}
+            {activityReport && (
+              <div className="p-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{activityReport.new_users}</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">New Users</div>
+                  </div>
+                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{activityReport.new_enrollments}</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">New Enrollments</div>
+                  </div>
+                  <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{activityReport.course_completions}</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">Completions</div>
+                  </div>
+                  <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{activityReport.new_courses}</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">New Courses</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Recent Users */}
+                  <div>
+                    <h4 className="font-semibold text-slate-900 dark:text-white mb-3">Recent Users</h4>
+                    <div className="space-y-2">
+                      {activityReport.recent_users.map((user) => (
+                        <div key={user.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                          <div>
+                            <div className="text-sm font-medium text-slate-900 dark:text-white">{user.full_name || user.email}</div>
+                            <div className="text-xs text-slate-500">{user.role}</div>
+                          </div>
+                          <div className="text-xs text-slate-400">
+                            {user.created_at ? new Date(user.created_at).toLocaleDateString() : '-'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Recent Enrollments */}
+                  <div>
+                    <h4 className="font-semibold text-slate-900 dark:text-white mb-3">Recent Enrollments</h4>
+                    <div className="space-y-2">
+                      {activityReport.recent_enrollments.map((enroll) => (
+                        <div key={enroll.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                          <div className="text-sm text-slate-900 dark:text-white">User {enroll.user_id}</div>
+                          <div className="text-xs text-slate-400">
+                            {enroll.enrolled_at ? new Date(enroll.enrolled_at).toLocaleDateString() : '-'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </motion.div>
 
-      {/* Top Courses & Category Distribution */}
+      {/* Category Distribution (Always Visible) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
-        className="grid lg:grid-cols-2 gap-8"
+        className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6"
       >
-        {/* Top Courses - Placeholder */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-          <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Top Performing Courses
-            </h3>
-          </div>
-          <div className="p-6 text-center text-slate-400">
-            <p>Course performance data will appear here</p>
-          </div>
-        </div>
-
-        {/* Category Distribution - Real Data */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">
-            Course Categories
-          </h3>
-          {categories.length > 0 ? (
-            <div className="space-y-4">
-              {categories.map((category, index) => (
-                <div key={index}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      {category.name}
-                    </span>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
-                      {category.count} courses ({category.percentage}%)
-                    </span>
-                  </div>
-                  <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${getCategoryColor(index)} rounded-full transition-all duration-500`}
-                      style={{ width: `${category.percentage}%` }}
-                    />
-                  </div>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">
+          Course Categories Overview
+        </h3>
+        {categories.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {categories.map((category, index) => (
+              <div key={index} className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-slate-900 dark:text-white">{category.name}</span>
+                  <span className="text-sm text-slate-500 dark:text-slate-400">{category.count} courses</span>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center text-slate-400 py-8">
-              <p>No course categories available. Create courses to see distribution.</p>
-            </div>
-          )}
-        </div>
+                <div className="h-2 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary-500 rounded-full"
+                    style={{ width: `${category.percentage}%` }}
+                  />
+                </div>
+                <div className="text-xs text-slate-400 mt-1">{category.percentage}% of total</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-slate-500 dark:text-slate-400 text-center py-8">
+            No course categories available. Create courses to see distribution.
+          </p>
+        )}
       </motion.div>
     </div>
   );

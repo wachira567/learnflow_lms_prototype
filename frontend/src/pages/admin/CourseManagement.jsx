@@ -12,8 +12,12 @@ import {
   X,
   CheckCircle,
   BookOpen,
+  Image,
+  Upload,
+  Cloud,
 } from "lucide-react";
 import { courseService } from "../../services/courseService";
+import analyticsService from "../../services/analyticsService";
 
 const CourseManagement = () => {
   const [courses, setCourses] = useState([]);
@@ -25,6 +29,9 @@ const CourseManagement = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [notification, setNotification] = useState(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState(null);
+  const [bannerPreview, setBannerPreview] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -32,7 +39,8 @@ const CourseManagement = () => {
     category: "",
     level: "Beginner",
     duration: "",
-    price: "",
+    thumbnail_url: "",
+    banner_url: "",
   });
 
   // Fetch courses with backend filtering
@@ -42,13 +50,24 @@ const CourseManagement = () => {
 
   const fetchCourses = async () => {
     try {
-      const filters = {};
-      if (searchQuery) filters.search = searchQuery;
-      if (categoryFilter) filters.category = categoryFilter;
-      if (levelFilter) filters.level = levelFilter;
-
-      const data = await courseService.getAllCourses(filters);
-      setCourses(data);
+      // Use the endpoint that returns enrollment counts
+      const data = await analyticsService.getCoursesWithEnrollments();
+      
+      // Apply local filters
+      let filteredCourses = data;
+      if (searchQuery) {
+        filteredCourses = filteredCourses.filter(c => 
+          c.title.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+      if (categoryFilter) {
+        filteredCourses = filteredCourses.filter(c => c.category === categoryFilter);
+      }
+      if (levelFilter) {
+        filteredCourses = filteredCourses.filter(c => c.level === levelFilter);
+      }
+      
+      setCourses(filteredCourses);
     } catch (error) {
       console.error("Error fetching courses:", error);
     } finally {
@@ -64,7 +83,80 @@ const CourseManagement = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  const handleThumbnailUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", file);
+      formDataUpload.append("folder", "courses/thumbnails");
+      
+      const response = await fetch("http://localhost:8000/api/upload", {
+        method: "POST",
+        body: formDataUpload,
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("learnflow-token")}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setFormData({ ...formData, thumbnail_url: data.url });
+        setThumbnailPreview(data.url);
+        showNotification("Thumbnail uploaded successfully!");
+      } else {
+        showNotification("Failed to upload thumbnail", "error");
+      }
+    } catch (error) {
+      console.error("Error uploading thumbnail:", error);
+      showNotification("Failed to upload thumbnail", "error");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleBannerUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", file);
+      formDataUpload.append("folder", "courses/banners");
+      
+      const response = await fetch("http://localhost:8000/api/upload", {
+        method: "POST",
+        body: formDataUpload,
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("learnflow-token")}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setFormData({ ...formData, banner_url: data.url });
+        setBannerPreview(data.url);
+        showNotification("Banner uploaded successfully!");
+      } else {
+        showNotification("Failed to upload banner", "error");
+      }
+    } catch (error) {
+      console.error("Error uploading banner:", error);
+      showNotification("Failed to upload banner", "error");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleCreateCourse = async (e) => {
+    // Validate at least thumbnail is uploaded
+    if (!formData.thumbnail_url) {
+      showNotification("Please upload a course thumbnail image", "error");
+      return;
+    }
     e.preventDefault();
     try {
       await courseService.createCourse(formData);
@@ -75,8 +167,11 @@ const CourseManagement = () => {
         category: "",
         level: "Beginner",
         duration: "",
-        price: "",
+        thumbnail_url: "",
+        banner_url: "",
       });
+      setThumbnailPreview(null);
+      setBannerPreview(null);
       fetchCourses();
       showNotification("Course created successfully!");
     } catch (error) {
@@ -113,6 +208,20 @@ const CourseManagement = () => {
     "Data Science",
   ];
   const levels = ["Beginner", "Intermediate", "Advanced"];
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      category: "",
+      level: "Beginner",
+      duration: "",
+      thumbnail_url: "",
+      banner_url: "",
+    });
+    setThumbnailPreview(null);
+    setBannerPreview(null);
+  };
 
   return (
     <div className="space-y-8">
@@ -153,7 +262,10 @@ const CourseManagement = () => {
           </p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => {
+            resetForm();
+            setShowCreateModal(true);
+          }}
           className="flex items-center justify-center space-x-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
@@ -262,17 +374,23 @@ const CourseManagement = () => {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-4">
-                        <img
-                          src={course.thumbnail_url || course.thumbnail}
-                          alt={course.title}
-                          className="w-12 h-12 rounded-lg object-cover"
-                        />
+                        {course.thumbnail_url ? (
+                          <img
+                            src={course.thumbnail_url}
+                            alt={course.title}
+                            className="w-12 h-12 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary-500 via-secondary-500 to-primary-600 flex items-center justify-center">
+                            <BookOpen className="w-6 h-6 text-white" />
+                          </div>
+                        )}
                         <div>
                           <p className="font-medium text-slate-900 dark:text-white">
                             {course.title}
                           </p>
                           <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {course.duration}
+                            {course.category}
                           </p>
                         </div>
                       </div>
@@ -296,7 +414,7 @@ const CourseManagement = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
-                      {(course.enrolledStudents || 0).toLocaleString()}
+                      {(course.enrollments || 0).toLocaleString()}
                     </td>
 
                     <td className="px-6 py-4">
@@ -355,7 +473,10 @@ const CourseManagement = () => {
                   Create New Course
                 </h3>
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    resetForm();
+                  }}
                   className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5 text-slate-500" />
@@ -363,6 +484,96 @@ const CourseManagement = () => {
               </div>
 
               <form onSubmit={handleCreateCourse} className="p-6 space-y-6">
+                {/* Thumbnail Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Course Thumbnail <span className="text-red-500">*</span>
+                  </label>
+                  <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-4">
+                    {thumbnailPreview ? (
+                      <div className="relative">
+                        <img
+                          src={thumbnailPreview}
+                          alt="Thumbnail preview"
+                          className="w-full h-40 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setThumbnailPreview(null);
+                            setFormData({ ...formData, thumbnail_url: "" });
+                          }}
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center cursor-pointer">
+                        <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                        <span className="text-sm text-slate-500 dark:text-slate-400">
+                          Click to upload thumbnail
+                        </span>
+                        <span className="text-xs text-slate-400 mt-1">
+                          Required - Used in course cards
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleThumbnailUpload}
+                          className="hidden"
+                          disabled={isUploading}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {/* Banner Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Course Banner <span className="text-slate-400">(Optional)</span>
+                  </label>
+                  <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-4">
+                    {bannerPreview ? (
+                      <div className="relative">
+                        <img
+                          src={bannerPreview}
+                          alt="Banner preview"
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBannerPreview(null);
+                            setFormData({ ...formData, banner_url: "" });
+                          }}
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center cursor-pointer">
+                        <Image className="w-8 h-8 text-slate-400 mb-2" />
+                        <span className="text-sm text-slate-500 dark:text-slate-400">
+                          Click to upload banner
+                        </span>
+                        <span className="text-xs text-slate-400 mt-1">
+                          Optional - Used in course header
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleBannerUpload}
+                          className="hidden"
+                          disabled={isUploading}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     Course Title
@@ -436,38 +647,39 @@ const CourseManagement = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Duration
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.duration}
-                      onChange={(e) =>
-                        setFormData({ ...formData, duration: e.target.value })
-                      }
-                      required
-                      className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-                      placeholder="e.g., 12 hours"
-                    />
-                  </div>
-
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Duration
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.duration}
+                    onChange={(e) =>
+                      setFormData({ ...formData, duration: e.target.value })
+                    }
+                    required
+                    className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                    placeholder="e.g., 12 hours"
+                  />
                 </div>
 
                 <div className="flex justify-end space-x-3">
                   <button
                     type="button"
-                    onClick={() => setShowCreateModal(false)}
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      resetForm();
+                    }}
                     className="px-6 py-3 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                    disabled={isUploading}
+                    className="px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
                   >
-                    Create Course
+                    {isUploading ? "Uploading..." : "Create Course"}
                   </button>
                 </div>
               </form>

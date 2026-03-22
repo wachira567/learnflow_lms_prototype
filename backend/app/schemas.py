@@ -6,7 +6,7 @@ These define the shape of data coming in and out of our API
 import re
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 
@@ -111,7 +111,6 @@ class CourseBase(BaseModel):
     category: str = Field(..., min_length=1, max_length=100)
     level: str = Field(..., pattern="^(Beginner|Intermediate|Advanced)$")
     duration: str = Field(..., min_length=1, max_length=50)
-    price: float = Field(..., ge=0)
 
     @field_validator('title', 'description', 'category')
     @classmethod
@@ -129,6 +128,7 @@ class CourseCreate(CourseBase):
     """Schema for creating a new course"""
 
     thumbnail_url: Optional[str] = None
+    banner_url: Optional[str] = None
 
 
 class CourseUpdate(BaseModel):
@@ -139,9 +139,10 @@ class CourseUpdate(BaseModel):
     category: Optional[str] = None
     level: Optional[str] = None
     duration: Optional[str] = None
-    price: Optional[float] = Field(None, ge=0)
     thumbnail_url: Optional[str] = None
+    banner_url: Optional[str] = None
     is_published: Optional[bool] = None
+    is_leaderboard_public: Optional[bool] = None
 
 
 class CourseResponse(CourseBase):
@@ -149,8 +150,10 @@ class CourseResponse(CourseBase):
 
     id: int
     thumbnail_url: Optional[str] = None
+    banner_url: Optional[str] = None
     instructor_id: int
     is_published: bool
+    is_leaderboard_public: bool
     created_at: datetime
     updated_at: datetime
     
@@ -161,6 +164,7 @@ class CourseResponse(CourseBase):
     enrolledStudents: Optional[int] = 0
     lessonsCount: Optional[int] = 0
     lessons: Optional[List[dict]] = []
+    is_enrolled: bool = False
 
     class Config:
         from_attributes = True
@@ -174,9 +178,9 @@ class CourseListResponse(BaseModel):
     category: str
     level: str
     duration: str
-    price: float
     thumbnail_url: Optional[str] = None
     instructor_id: int
+    is_enrolled: bool = False
 
 
 # ============== LESSON SCHEMAS ==============
@@ -194,6 +198,7 @@ class LessonBase(BaseModel):
     type: LessonType = LessonType.VIDEO
     duration: str = Field(..., min_length=1, max_length=50)
     content: Optional[str] = Field(None, max_length=10000)  # URL for video, text content for text lessons
+    notes: Optional[str] = None  # Admin's supplementary notes or PDF link
 
     @field_validator('title', 'content')
     @classmethod
@@ -220,6 +225,7 @@ class LessonUpdate(BaseModel):
     type: Optional[LessonType] = None
     duration: Optional[str] = None
     content: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class LessonResponse(LessonBase):
@@ -253,9 +259,90 @@ class ProgressResponse(BaseModel):
     total_lessons: int
     progress_percentage: float
     last_accessed: Optional[datetime] = None
+    total_seconds_spent: int = 0
+
+
+class ProgressTelemetry(BaseModel):
+    """Schema for time-tracking heartbeat"""
+    lesson_id: str
+    seconds_spent: int = Field(..., gt=0, le=60)
+
+
+# ============== DISCUSSION SCHEMAS ==============
+
+
+class CommentCreate(BaseModel):
+    content: str
+    is_private: bool = False
+    lesson_id: Optional[str] = None
+    parent_id: Optional[int] = None
+
+
+class CommentResponse(BaseModel):
+    id: int
+    course_id: int
+    user_id: int
+    author_name: str
+    author_avatar: Optional[str] = None
+    content: str
+    is_private: bool
+    lesson_id: Optional[str] = None
+    parent_id: Optional[int] = None
+    created_at: datetime
+    upvotes: int = 0
+    downvotes: Optional[int] = None  # Admins only
+    user_vote: int = 0  # 1 for upvote, -1 for downvote, 0 for none
+    
+    # Context fields for inboxes
+    course_title: Optional[str] = None
+    lesson_title: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+
+class VoteAction(BaseModel):
+    vote_type: int  # 1 or -1
+
+    class Config:
+        from_attributes = True
+
+
+# ============== CHAT SCHEMAS ==============
+
+
+class DirectMessageCreate(BaseModel):
+    """Schema for creating a direct message"""
+
+    content: str = Field(..., min_length=1, max_length=2000)
+
+
+class DirectMessageResponse(BaseModel):
+    """Schema for direct message response"""
+
+    id: int
+    sender_id: int
+    receiver_id: int
+    sender_name: str
+    sender_avatar: Optional[str] = None
+    content: str
+    is_read: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ConversationSummary(BaseModel):
+    """Schema for conversation summary (last message + unread count)"""
+
+    partner_id: int
+    partner_name: str
+    partner_avatar: Optional[str] = None
+    partner_role: str
+    last_message: str
+    last_message_at: datetime
+    unread_count: int
 
 
 # ============== AUDIT LOG SCHEMAS ==============

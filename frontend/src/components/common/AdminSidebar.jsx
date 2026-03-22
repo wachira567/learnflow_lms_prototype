@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  MessageCircle,
   Shield,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -26,6 +27,7 @@ const AdminSidebar = () => {
     { name: "Courses", icon: BookOpen, href: "/admin/courses" },
     { name: "Users", icon: Users, href: "/admin/users" },
     { name: "Analytics", icon: BarChart3, href: "/admin/analytics" },
+    { name: "Messages", icon: MessageCircle, href: "/admin/messages" },
     { name: "Settings", icon: Settings, href: "/admin/profile" },
   ];
 

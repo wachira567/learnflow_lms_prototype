@@ -7,15 +7,20 @@ import {
   Circle,
   ChevronLeft,
   ChevronRight,
+  Video,
   Menu,
   X,
   FileText,
   Download,
   MessageCircle,
   Clock,
+  AlertCircle
 } from 'lucide-react';
+
+import CourseDiscussions from '../../components/discussions/CourseDiscussions';
 import { courseService } from '../../services/courseService';
 import { useAuth } from '../../contexts/AuthContext';
+import { api } from '../../services/api';
 
 const LessonViewer = () => {
   const { id } = useParams();
@@ -60,8 +65,27 @@ const LessonViewer = () => {
     fetchData();
   }, [id]);
 
+  // Telemetry Heartbeat
+  useEffect(() => {
+    if (isAdmin || !currentLesson) return;
+
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        await api.post(`/courses/${id}/telemetry`, {
+          lesson_id: currentLesson.id,
+          seconds_spent: 10
+        });
+      } catch (err) {
+        // Silently fail to not disrupt user experience
+        console.debug("Telemetry heartbeat skipped:", err);
+      }
+    }, 10000); // 10 seconds
+
+    return () => clearInterval(heartbeatInterval);
+  }, [id, currentLesson, isAdmin]);
+
   const handleLessonComplete = async () => {
-    if (!currentLesson) return;
+    if (!currentLesson || isAdmin) return;
     
     setIsMarkingComplete(true);
     try {
@@ -137,8 +161,16 @@ const LessonViewer = () => {
 
   return (
     <div className="h-screen flex flex-col -m-4 sm:-m-6 lg:-m-8">
+      {/* Admin Preview Banner */}
+      {isAdmin && (
+        <div className="bg-amber-500 text-white px-4 py-2 text-sm font-medium text-center flex items-center justify-center space-x-2 sticky top-0 z-50">
+          <AlertCircle className="w-4 h-4" />
+          <span>Preview Mode active. Progress tracking is disabled.</span>
+        </div>
+      )}
+
       {/* Top bar */}
-      <div className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4">
+      <div className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 z-40">
         <div className="flex items-center space-x-4">
           <button
             onClick={() => navigate(isAdmin ? `/admin/courses/${id}/preview` : `/courses/${id}`)}
@@ -245,40 +277,23 @@ const LessonViewer = () => {
                 )}
               </div>
 
-              {/* Resources */}
-              <div className="mt-8">
-                <h4 className="font-semibold text-slate-900 dark:text-white mb-4">
-                  Lesson Resources
-                </h4>
-                <div className="space-y-2">
-                  <a
-                    href="#"
-                    className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                  >
-                    <FileText className="w-5 h-5 text-primary-600" />
-                    <span className="text-slate-700 dark:text-slate-300">Lesson Slides.pdf</span>
-                    <Download className="w-4 h-4 text-slate-400 ml-auto" />
-                  </a>
-                  <a
-                    href="#"
-                    className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                  >
-                    <FileText className="w-5 h-5 text-primary-600" />
-                    <span className="text-slate-700 dark:text-slate-300">Exercise Files.zip</span>
-                    <Download className="w-4 h-4 text-slate-400 ml-auto" />
-                  </a>
+              {/* Notes / Resources */}
+              {currentLesson.notes && (
+                <div className="mt-8">
+                  <h4 className="font-semibold text-slate-900 dark:text-white mb-4">
+                    Supplementary Notes & Resources
+                  </h4>
+                  <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-6">
+                    <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                      {currentLesson.notes}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Discussion */}
               <div className="mt-8">
-                <h4 className="font-semibold text-slate-900 dark:text-white mb-4">
-                  Discussion
-                </h4>
-                <button className="flex items-center space-x-2 text-primary-600 hover:text-primary-700">
-                  <MessageCircle className="w-5 h-5" />
-                  <span>Join the discussion</span>
-                </button>
+                <CourseDiscussions courseId={id} />
               </div>
             </div>
           </div>
@@ -297,24 +312,20 @@ const LessonViewer = () => {
 
               <button
                 onClick={handleLessonComplete}
-                disabled={isMarkingComplete}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all ${
-                  currentLesson.completed
-                    ? 'bg-success-100 dark:bg-success-900/30 text-success-700 dark:text-success-300'
-                    : 'bg-primary-600 text-white hover:bg-primary-700'
-                }`}
+                disabled={isMarkingComplete || isAdmin}
+                className="flex items-center space-x-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isMarkingComplete ? (
-                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                ) : currentLesson.completed ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : currentLesson.completed && !isAdmin ? (
                   <>
                     <CheckCircle className="w-5 h-5" />
-                    <span>Completed</span>
+                    <span className="hidden sm:inline">Completed</span>
                   </>
                 ) : (
                   <>
-                    <Circle className="w-5 h-5" />
-                    <span>Mark as Complete</span>
+                    <CheckCircle className="w-5 h-5" />
+                    <span className="hidden sm:inline">{isAdmin ? 'Preview Only' : 'Mark as Complete'}</span>
                   </>
                 )}
               </button>

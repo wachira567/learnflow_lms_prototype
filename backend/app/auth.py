@@ -102,6 +102,30 @@ async def get_current_user(
     return user
 
 
+# Get user if token is provided, without raising 401
+async def get_optional_user(
+    db: Session = Depends(get_db),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+) -> Optional[User]:
+    """
+    Get current user from JWT token if provided, but don't fail if not.
+    """
+    if credentials is None:
+        return None
+        
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("email") # Check main.py create_access_token data keys
+        if email is None:
+            return None
+    except JWTError:
+        return None
+        
+    user = db.query(User).filter(User.email == email).first()
+    return user
+
+
 # Check if user is active
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     if not current_user.is_active:

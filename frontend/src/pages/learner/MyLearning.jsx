@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
   Clock,
@@ -8,14 +8,21 @@ import {
   Play,
   CheckCircle,
   ChevronRight,
+  Pause,
+  Trash2,
+  X
 } from "lucide-react";
 import learnerService from "../../services/learnerService";
+import { courseService } from "../../services/courseService";
 
 const MyLearning = () => {
   const [enrollments, setEnrollments] = useState([]);
   const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("in-progress");
+  const [showUnenrollModal, setShowUnenrollModal] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [isUnenrolling, setIsUnenrolling] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,6 +42,24 @@ const MyLearning = () => {
 
     fetchData();
   }, []);
+
+  const handleUnenroll = async () => {
+    if (!selectedCourse) return;
+    setIsUnenrolling(true);
+    try {
+      await courseService.unenrollCourse(selectedCourse.id);
+      setEnrollments(prev => prev.filter(e => e.id !== selectedCourse.id));
+      setShowUnenrollModal(false);
+      setSelectedCourse(null);
+      // Refresh stats
+      const statsData = await learnerService.getStats();
+      setStats(statsData);
+    } catch (error) {
+      console.error("Error unenrolling:", error);
+    } finally {
+      setIsUnenrolling(false);
+    }
+  };
 
   const statsData = stats
     ? [
@@ -235,13 +260,25 @@ const MyLearning = () => {
                           </div>
                         </div>
 
-                        <Link
-                          to={`/courses/${course.id}/learn`}
-                          className="mt-4 md:mt-0 md:ml-6 inline-flex items-center space-x-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors"
-                        >
-                          <Play className="w-4 h-4" />
-                          <span>Continue</span>
-                        </Link>
+                        <div className="mt-4 md:mt-0 md:ml-6 flex flex-col gap-2">
+                          <Link
+                            to={`/courses/${course.id}/learn`}
+                            className="inline-flex items-center justify-center space-x-2 px-6 py-2 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                          >
+                            <Play className="w-4 h-4" />
+                            <span>Continue</span>
+                          </Link>
+                          <button
+                            onClick={() => {
+                              setSelectedCourse(course);
+                              setShowUnenrollModal(true);
+                            }}
+                            className="inline-flex items-center justify-center space-x-2 px-6 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Unenroll</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -308,6 +345,51 @@ const MyLearning = () => {
           </div>
         )}
       </motion.div>
+
+      {/* Unenroll Modal */}
+      <AnimatePresence>
+        {showUnenrollModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6 text-center"
+            >
+              <div className="w-16 h-16 bg-danger-100 dark:bg-danger-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-danger-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                Unenroll from Course?
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400 mb-6">
+                Are you sure you want to unenroll from <strong>{selectedCourse?.title}</strong>? 
+                This will clear all your progress data for this course.
+              </p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => setShowUnenrollModal(false)}
+                  className="px-6 py-2 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUnenroll}
+                  disabled={isUnenrolling}
+                  className="px-6 py-2 bg-danger-600 text-white font-semibold rounded-xl hover:bg-danger-700 transition-all disabled:opacity-50"
+                >
+                  {isUnenrolling ? "Unenrolling..." : "Yes, Unenroll"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

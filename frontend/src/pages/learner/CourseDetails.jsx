@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -15,6 +15,8 @@ import {
   Calendar,
   ArrowLeft,
 } from 'lucide-react';
+
+import Leaderboard from '../../components/leaderboard/Leaderboard';
 import { courseService } from '../../services/courseService';
 
 const CourseDetails = () => {
@@ -25,6 +27,8 @@ const CourseDetails = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const navigate = useNavigate();
+  const [isEnrolling, setIsEnrolling] = useState(false);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -44,6 +48,29 @@ const CourseDetails = () => {
 
     fetchCourse();
   }, [id]);
+
+  const handleStartLearning = async () => {
+    if (isAdmin) {
+      navigate(`/admin/courses/${course.id}/preview/learn`);
+      return;
+    }
+
+    if (course.is_enrolled) {
+      navigate(`/courses/${course.id}/learn`);
+      return;
+    }
+
+    setIsEnrolling(true);
+    try {
+      await courseService.enrollCourse(id);
+      // Wait a moment for backend to sync if needed, but usually it's immediate
+      navigate(`/courses/${course.id}/learn`);
+    } catch (error) {
+      console.error('Error enrolling in course:', error);
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -125,7 +152,7 @@ const CourseDetails = () => {
           {/* Tabs */}
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
             <div className="flex border-b border-slate-200 dark:border-slate-700">
-              {['overview', 'curriculum', 'instructor'].map((tab) => (
+              {['overview', 'curriculum', 'instructor', (course?.is_leaderboard_public || isAdmin) && 'leaderboard'].filter(Boolean).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -291,6 +318,15 @@ const CourseDetails = () => {
                   </p>
                 </motion.div>
               )}
+
+              {activeTab === 'leaderboard' && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  <Leaderboard courseId={id} />
+                </motion.div>
+              )}
             </div>
           </div>
         </div>
@@ -318,13 +354,20 @@ const CourseDetails = () => {
             )}
 
             {/* CTA Button */}
-            <Link
-              to={isAdmin ? `/admin/courses/${course.id}/preview/learn` : `/courses/${course.id}/learn`}
-              className="w-full py-4 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-all duration-300 flex items-center justify-center space-x-2 hover:shadow-lg hover:shadow-primary-500/30"
+            <button
+              onClick={handleStartLearning}
+              disabled={isEnrolling}
+              className="w-full py-4 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-all duration-300 flex items-center justify-center space-x-2 hover:shadow-lg hover:shadow-primary-500/30 disabled:opacity-50"
             >
-              <Play className="w-5 h-5" />
-              <span>{progressPercentage > 0 ? 'Continue Learning' : 'Start Learning'}</span>
-            </Link>
+              {isEnrolling ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Play className="w-5 h-5" />
+                  <span>{course.is_enrolled ? 'Continue Learning' : 'Start Learning'}</span>
+                </>
+              )}
+            </button>
 
             {/* Course includes */}
             <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">

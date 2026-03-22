@@ -35,6 +35,7 @@ const LessonManagement = () => {
     type: 'video',
     duration: '',
     content: '',
+    notes: '',
   });
 
   useEffect(() => {
@@ -69,6 +70,7 @@ const LessonManagement = () => {
         type: 'video',
         duration: '',
         content: '',
+        notes: '',
       });
       setSelectedLesson(null);
       fetchCourse();
@@ -187,7 +189,7 @@ const LessonManagement = () => {
           <button
             onClick={() => {
               setSelectedLesson(null);
-              setFormData({ title: '', type: 'video', duration: '', content: '' });
+              setFormData({ title: '', type: 'video', duration: '', content: '', notes: '' });
               setShowCreateModal(true);
             }}
             className="flex items-center justify-center space-x-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-colors"
@@ -265,6 +267,7 @@ const LessonManagement = () => {
                         type: lesson.type,
                         duration: lesson.duration,
                         content: lesson.content || '',
+                        notes: lesson.notes || '',
                       });
                       setShowCreateModal(true);
                     }}
@@ -379,9 +382,22 @@ const LessonManagement = () => {
                   <textarea
                     value={formData.content}
                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    rows={4}
+                    rows={formData.type === 'video' ? 2 : 4}
                     className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all resize-none"
                     placeholder={formData.type === 'video' ? 'Enter video URL or upload above' : 'Enter lesson content'}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Supplementary Notes / External Links (Optional)
+                  </label>
+                  <textarea
+                    value={formData.notes || ''}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows={3}
+                    className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all resize-none"
+                    placeholder="E.g. Link to PDF, instructions, or extra notes..."
                   />
                 </div>
 

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -21,9 +21,10 @@ def create_lesson(course_id: int, lesson_data: dict) -> str:
         "type": lesson_data.get("type", "video"),
         "duration": lesson_data["duration"],
         "content": lesson_data.get("content", ""),
+        "notes": lesson_data.get("notes", ""),
         "order": order,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
     }
 
     result = course_content_collection.insert_one(lesson_doc)
@@ -56,7 +57,7 @@ def get_lesson(lesson_id: str) -> Optional[Dict[str, Any]]:
 # Update a lesson
 def update_lesson(lesson_id: str, update_data: dict) -> bool:
     try:
-        update_data["updated_at"] = datetime.utcnow()
+        update_data["updated_at"] = datetime.now(timezone.utc)
         result = course_content_collection.update_one(
             {"_id": ObjectId(lesson_id)}, {"$set": update_data}
         )
@@ -94,6 +95,7 @@ def get_user_progress(user_id: int, course_id: int) -> Dict[str, Any]:
             "total_lessons": len(get_course_lessons(course_id)),
             "progress_percentage": 0.0,
             "last_accessed": None,
+            "total_seconds_spent": 0,
         }
 
     progress["id"] = str(progress.pop("_id"))
@@ -104,6 +106,7 @@ def get_user_progress(user_id: int, course_id: int) -> Dict[str, Any]:
     progress["progress_percentage"] = (
         (completed_count / total_lessons * 100) if total_lessons > 0 else 0
     )
+    progress["total_seconds_spent"] = progress.get("total_seconds_spent", 0)
 
     return progress
 
@@ -129,7 +132,7 @@ def update_lesson_progress(
             {
                 "$set": {
                     "completed_lessons": list(completed_lessons),
-                    "last_accessed": datetime.utcnow(),
+                    "last_accessed": datetime.now(timezone.utc),
                 }
             },
         )
@@ -140,11 +143,44 @@ def update_lesson_progress(
                 "user_id": user_id,
                 "course_id": course_id,
                 "completed_lessons": completed_lessons,
-                "last_accessed": datetime.utcnow(),
+                "lesson_times": {},
+                "total_seconds_spent": 0,
+                "last_accessed": datetime.now(timezone.utc),
             }
         )
 
     return get_user_progress(user_id, course_id)
+
+
+def log_time_spent(user_id: int, course_id: int, lesson_id: str, seconds: int) -> bool:
+    progress = user_progress_collection.find_one({"user_id": user_id, "course_id": course_id})
+    if not progress:
+        user_progress_collection.insert_one({
+            "user_id": user_id,
+            "course_id": course_id,
+            "completed_lessons": [],
+            "lesson_times": {lesson_id: seconds},
+            "total_seconds_spent": seconds,
+            "last_accessed": datetime.now(timezone.utc)
+        })
+    else:
+        lesson_times = progress.get("lesson_times", {})
+        current_time = lesson_times.get(lesson_id, 0)
+        lesson_times[lesson_id] = current_time + seconds
+
+        user_progress_collection.update_one(
+            {"_id": progress["_id"]},
+            {
+                "$set": {
+                    "lesson_times": lesson_times,
+                    "last_accessed": datetime.now(timezone.utc)
+                },
+                "$inc": {
+                    "total_seconds_spent": seconds
+                }
+            }
+        )
+    return True
 
 
 # Get all progress for a user
@@ -169,7 +205,7 @@ def create_audit_log_mongo(log_data: dict) -> str:
         "details": log_data.get("details"),
         "ip_address": log_data.get("ip_address"),
         "user_agent": log_data.get("user_agent"),
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
     }
 
     result = audit_logs_collection.insert_one(log_doc)

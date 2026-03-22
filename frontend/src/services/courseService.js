@@ -98,6 +98,21 @@ export const courseService = {
   getUserById: async (userId) => {
     return await api.get(`/users/${userId}`);
   },
+
+  // Upload course thumbnail
+  uploadThumbnail: async (file) => {
+    return await api.upload("/upload", file);
+  },
+
+  // Get admin messages (inquiries from learners)
+  getAdminMessages: async () => {
+    return await api.get("/admin/messages");
+  },
+
+  // Reply to a message
+  replyToMessage: async (messageId, content) => {
+    return await api.post(`/discussions/${messageId}/reply`, { content });
+  },
 };
 
 export default courseService;

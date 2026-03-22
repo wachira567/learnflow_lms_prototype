@@ -25,6 +25,7 @@ import CourseDetails from "./pages/learner/CourseDetails";
 import LessonViewer from "./pages/learner/LessonViewer";
 import MyLearning from "./pages/learner/MyLearning";
 import Profile from "./pages/learner/Profile";
+import MyMessages from "./pages/learner/MyMessages";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -32,6 +33,7 @@ import CourseManagement from "./pages/admin/CourseManagement";
 import LessonManagement from "./pages/admin/LessonManagement";
 import UserManagement from "./pages/admin/UserManagement";
 import Analytics from "./pages/admin/Analytics";
+import AdminMessages from "./pages/admin/AdminMessages";
 
 // Shared components
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -64,6 +66,7 @@ function App() {
             <Route path="/courses/:id/learn" element={<LessonViewer />} />
             <Route path="/my-learning" element={<MyLearning />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/messages" element={<MyMessages />} />
           </Route>
         </Route>
 
@@ -78,6 +81,7 @@ function App() {
             />
             <Route path="/admin/users" element={<UserManagement />} />
             <Route path="/admin/analytics" element={<Analytics />} />
+            <Route path="/admin/messages" element={<AdminMessages />} />
             <Route path="/admin/profile" element={<Profile />} />
             <Route path="/admin/courses/:id/preview" element={<CourseDetails />} />
             <Route path="/admin/courses/:id/preview/learn" element={<LessonViewer />} />

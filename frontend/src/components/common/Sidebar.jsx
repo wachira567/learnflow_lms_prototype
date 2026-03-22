@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -22,6 +23,7 @@ const Sidebar = () => {
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
     { name: 'Browse Courses', icon: BookOpen, href: '/courses' },
     { name: 'My Learning', icon: GraduationCap, href: '/my-learning' },
+    { name: 'Messages', icon: MessageCircle, href: '/messages' },
     { name: 'Profile', icon: User, href: '/profile' },
   ];
 
