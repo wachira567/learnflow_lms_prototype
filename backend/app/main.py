@@ -511,7 +511,18 @@ def create_course(
         request=request,
     )
 
-    return new_course
+    # Build response with enriched fields
+    course_dict = new_course.to_dict()
+    course_dict["instructor"] = f"{current_user.first_name} {current_user.last_name}"
+    course_dict["instructorAvatar"] = current_user.avatar_url
+    course_dict["rating"] = 4.5
+    course_dict["enrolledStudents"] = 0
+    course_dict["lessonsCount"] = 0
+    course_dict["lessons"] = []
+    course_dict["is_enrolled"] = False
+    course_dict["is_leaderboard_public"] = new_course.is_leaderboard_public
+
+    return course_dict
 
 
 @app.put("/api/courses/{course_id}", response_model=CourseResponse)

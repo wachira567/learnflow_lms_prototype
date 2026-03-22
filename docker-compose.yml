@@ -46,7 +46,7 @@ services:
       - "8000:8000"
     environment:
       # Use Docker service names for internal communication
-      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/learnflow
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/learnflow
       MONGO_URL: mongodb://admin:admin@mongodb:27017/
       SECRET_KEY: 26e37c5758cd5db2dc78edabcc8de1f1dab43d0a38fcd458ec41afde724f21f6
       ALGORITHM: HS256

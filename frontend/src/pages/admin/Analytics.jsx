@@ -545,7 +545,7 @@ const Analytics = () => {
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
                 User Report
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Role
@@ -583,32 +583,32 @@ const Analytics = () => {
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                   />
                 </div>
-                <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 mt-4">
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                      Results per page:
-                    </label>
-                    <select
-                      value={reportLimit}
-                      onChange={(e) => setReportLimit(Number(e.target.value))}
-                      className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm"
-                    >
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                      <option value={20}>20</option>
-                      <option value={30}>30</option>
-                      <option value={50}>50</option>
-                    </select>
-                  </div>
-                  <button
-                    onClick={generateUserReport}
-                    disabled={reportLoading}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+              </div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                    Results per page:
+                  </label>
+                  <select
+                    value={reportLimit}
+                    onChange={(e) => setReportLimit(Number(e.target.value))}
+                    className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm"
                   >
-                    <Filter className="w-4 h-4" />
-                    {reportLoading ? "Generating..." : "Generate Report"}
-                  </button>
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={30}>30</option>
+                    <option value={50}>50</option>
+                  </select>
                 </div>
+                <button
+                  onClick={generateUserReport}
+                  disabled={reportLoading}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  <Filter className="w-4 h-4" />
+                  {reportLoading ? "Generating..." : "Generate Report"}
+                </button>
               </div>
             </div>
 
@@ -797,7 +797,7 @@ const Analytics = () => {
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
                 View all user activity for security investigations and compliance reporting.
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Search User
@@ -846,31 +846,31 @@ const Analytics = () => {
                     <option value="course_completed">Course Completed</option>
                   </select>
                 </div>
-                <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 mt-4 md:mt-0">
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                      Results:
-                    </label>
-                    <select
-                      value={reportLimit}
-                      onChange={(e) => setReportLimit(Number(e.target.value))}
-                      className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm"
-                    >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
-                  </div>
-                  <button
-                    onClick={generateAuditLogsReport}
-                    disabled={reportLoading}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+              </div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                    Results:
+                  </label>
+                  <select
+                    value={reportLimit}
+                    onChange={(e) => setReportLimit(Number(e.target.value))}
+                    className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm"
                   >
-                    <Shield className="w-4 h-4" />
-                    {reportLoading ? "Loading..." : "View Logs"}
-                  </button>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
                 </div>
+                <button
+                  onClick={generateAuditLogsReport}
+                  disabled={reportLoading}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  <Shield className="w-4 h-4" />
+                  {reportLoading ? "Loading..." : "View Logs"}
+                </button>
               </div>
             </div>
 
