@@ -1153,31 +1153,52 @@ def get_activity_report(
 def get_audit_logs(
     user_id: Optional[int] = None,
     action: Optional[str] = None,
-    limit: int = 50,  # Default limit to prevent over-fetching
+    search: Optional[str] = None,
+    limit: int = 50,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """
     Get audit logs (Admin only)
+    Supports filtering by user_id, action, and search by user email/name
     """
-    # Sanitize limit (max 100, min 1)
+    # Sanitize limit
     limit = max(1, min(100, limit))
-    # Validate action filter (only allow specific actions)
+    # Validate action filter
     allowed_actions = [
         "user_registered",
         "user_login",
+        "google_oauth_login",
         "course_created",
         "course_updated",
         "course_deleted",
         "lesson_created",
+        "lesson_updated",
+        "lesson_deleted",
         "lesson_completed",
         "lesson_incomplete",
         "course_enrolled",
+        "course_unenrolled",
+        "course_completed",
     ]
     if action and action not in allowed_actions:
         action = None
 
+    # Build query with optional join to User table for search
     query = db.query(AuditLog)
+    
+    # If searching by name/email, join with User table
+    if search:
+        search = search.strip()[:100]
+        # Join with User to search by email or name
+        query = query.outerjoin(User, AuditLog.user_id == User.id)
+        query = query.filter(
+            or_(
+                User.email.ilike(f"%{search}%"),
+                User.first_name.ilike(f"%{search}%"),
+                User.last_name.ilike(f"%{search}%"),
+            )
+        )
 
     if user_id:
         query = query.filter(AuditLog.user_id == user_id)
@@ -1186,7 +1207,29 @@ def get_audit_logs(
 
     logs = query.order_by(AuditLog.created_at.desc()).limit(limit).all()
 
-    return logs
+    # Enrich with user email and name
+    result = []
+    for log in logs:
+        log_data = {
+            "id": log.id,
+            "user_id": log.user_id,
+            "action": log.action,
+            "resource_type": log.resource_type,
+            "resource_id": log.resource_id,
+            "details": log.details,
+            "ip_address": log.ip_address,
+            "user_agent": log.user_agent,
+            "created_at": log.created_at.isoformat() if log.created_at else None,
+        }
+        # Get user info if user_id exists
+        if log.user_id:
+            user = db.query(User).filter(User.id == log.user_id).first()
+            if user:
+                log_data["user_email"] = user.email
+                log_data["user_name"] = user.full_name
+        result.append(log_data)
+
+    return result
 
 
 # ============== HEALTH CHECK ==============

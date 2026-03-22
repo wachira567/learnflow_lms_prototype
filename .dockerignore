@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+backend/venv
+backend/__pycache__
+backend/.env
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+*.log
+logs
+
+# Docker
+docker-compose.yml
+Dockerfile*
+
+# Misc
+*.md
+!README.md
+.DS_Store
+Thumbs.db

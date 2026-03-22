@@ -88,6 +88,18 @@ export const analyticsService = {
     const response = await api.get(`/reports/activity?${params.toString()}`);
     return response;
   },
+
+  // Get audit logs for security investigations
+  getAuditLogs: async (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.user_id) params.append("user_id", filters.user_id);
+    if (filters.action) params.append("action", filters.action);
+    if (filters.search) params.append("search", filters.search);
+    if (filters.limit) params.append("limit", filters.limit);
+    
+    const response = await api.get(`/audit-logs?${params.toString()}`);
+    return response;
+  },
 };
 
 export default analyticsService;

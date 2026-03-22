@@ -1,179 +1,616 @@
-# LearnFlow - Modern Learning Management System
+# LearnFlow - Learning Management System
 
-A full-stack Learning Management System (LMS) built with React, FastAPI, PostgreSQL, and MongoDB. This is the production-ready version with security enhancements.
+[![Docker Compose](https://img.shields.io/badge/Docker-Compose-blue)](https://docs.docker.com/compose/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react)](https://react.dev/)
 
-## Features
+A modern, full-stack Learning Management System (LMS) prototype built with React, FastAPI, PostgreSQL, and MongoDB. This project demonstrates full-stack development skills including frontend, backend, dual-database architecture, and modern DevOps practices.
 
-### For Learners
-- Browse and search courses by category and level
-- Track learning progress with visual indicators
-- Interactive lesson viewer with video and text content
-- Dark/Light theme support
-- Responsive design for all devices
+## Quick Start (Docker Compose)
 
-### For Admins
-- Comprehensive dashboard with analytics
-- Course creation and management
-- Lesson management
-- User management with role-based access
-- Audit logs for security and compliance
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd learnflow_app
+
+# Start all services with one command (using Docker Compose V2 plugin)
+docker compose up --build
+
+# OR if you have the older docker-compose standalone command:
+docker-compose up --build
+```
+
+> **Note**: If you get "docker-compose: not found", make sure Docker is installed and try using `docker compose` (with a space) instead of `docker-compose` (with a hyphen). The `docker compose` command is the newer plugin-based version included with Docker Desktop and recent Docker installations.
+
+The application will be available at:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+
+## Table of Contents
+
+- [Project Overview](#project-overview)
+- [Tech Stack](#tech-stack)
+- [Features](#features)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [API Documentation](#api-documentation)
+- [Database Design](#database-design)
+- [Security Features](#security-features)
+- [Microservices Architecture](#microservices-architecture)
+- [Design Decisions & Trade-offs](#design-decisions--trade-offs)
+- [Project Structure](#project-structure)
+
+---
+
+## Project Overview
+
+LearnFlow is a Learning Management System that enables administrators to create and manage courses while allowing learners to browse, enroll, and track their progress through lessons. The system implements role-based access control with two primary roles: **Admin** and **Learner**.
+
+### Key Objectives Met
+
+- ✅ Full-stack implementation with React frontend and FastAPI backend
+- ✅ Dual-database architecture (PostgreSQL + MongoDB)
+- ✅ JWT-based authentication with role-based access
+- ✅ RESTful API design with comprehensive documentation
+- ✅ Docker Compose for easy deployment
+- ✅ Audit logging for security and compliance
+- ✅ Clean, modular code structure
+
+---
 
 ## Tech Stack
 
 ### Frontend
-- **React 19** - Modern UI library
-- **Vite** - Fast build tool
-- **React Router** - Client-side routing
-- **Tailwind CSS** - Utility-first CSS framework
-- **Framer Motion** - Smooth animations
-- **Lucide React** - Beautiful icons
+| Technology | Purpose |
+|------------|---------|
+| React 19 | UI Component Library |
+| Vite | Build Tool & Development Server |
+| React Router | Client-side Routing |
+| Tailwind CSS | Utility-first CSS Framework |
+| Framer Motion | Animations & Transitions |
+| Lucide React | Icon Library |
 
 ### Backend
-- **FastAPI** - Modern, fast Python web framework
-- **SQLAlchemy** - SQL toolkit and ORM
-- **PostgreSQL** - Relational database
-- **MongoDB** - NoSQL database
-- **JWT** - Secure authentication
-- **bcrypt** - Password hashing
-- **slowapi** - Rate limiting
+| Technology | Purpose |
+|------------|---------|
+| FastAPI | Modern Python Web Framework |
+| SQLAlchemy | SQL ORM Toolkit |
+| PostgreSQL | Relational Database (Users, Courses) |
+| MongoDB | NoSQL Database (Content, Progress) |
+| JWT | Token-based Authentication |
+| bcrypt | Password Hashing |
+| slowapi | Rate Limiting |
 
-## Quick Start
+### DevOps
+| Technology | Purpose |
+|------------|---------|
+| Docker | Containerization |
+| Docker Compose | Multi-container Orchestration |
+
+---
+
+## Features
+
+### For Learners
+- 📚 Browse and search courses by category and level
+- 🎯 Track learning progress with visual indicators
+- 📖 Interactive lesson viewer (video and text content)
+- 🏆 Course leaderboards
+- 💬 Course discussions and Q&A
+- 💬 Direct messaging with instructors
+- 🌙 Dark/Light theme support
+- 📱 Fully responsive design
+
+### For Administrators
+- 📊 Comprehensive analytics dashboard
+- 📝 Course creation and management
+- 📖 Lesson management with multiple content types
+- 👥 User management with role-based access
+- 📋 Audit logs for security and compliance
+- 📈 Platform insights and reporting
+- 📅 Activity reports and trends
+
+---
+
+## Getting Started
 
 ### Prerequisites
-- Docker and Docker Compose installed (for databases)
-- Python 3.8+
-- Node.js 18+
+- Docker and Docker Compose installed
+- Python 3.8+ (for local development)
+- Node.js 18+ (for local development)
 - Git
 
-### Running the Application
+### Running with Docker Compose
 
-#### Option 1: With Docker (Databases only)
+The easiest way to run the entire stack:
 
-1. Start PostgreSQL and MongoDB:
 ```bash
-docker start learnflow-postgres learnflow-mongodb
+# Clone the repository and navigate to the project
+cd learnflow_app
+
+# Start all services
+docker-compose up
 ```
 
-2. Start the Backend:
+The application will be available at:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+
+### Running Locally (Development)
+
+#### 1. Start Databases with Docker
+
+```bash
+docker run -d --name learnflow-postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=learnflow \
+  -p 5432:5432 postgres
+
+docker run -d --name learnflow-mongodb \
+  -p 27017:27017 \
+  mongo
+```
+
+#### 2. Start the Backend
+
 ```bash
 cd backend
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+
+# Set up environment variables (see .env file)
+cp .env.example .env
+
+# Run the server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-3. Start the Frontend (in a new terminal):
+#### 3. Start the Frontend
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-4. Access the application:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API Documentation: http://localhost:8000/docs
-
-#### Option 2: Docker Compose (Full Stack)
-
-```bash
-docker-compose up
-```
+---
 
 ## Environment Variables
 
-### Backend (.env)
+### Backend (`.env`)
+
 ```env
 # Database Configuration
 POSTGRES_URL=postgresql://postgres:postgres@localhost:5432/learnflow
 MONGO_URL=mongodb://localhost:27017/
 
-# JWT Authentication Configuration
-SECRET_KEY=your-super-secret-key-change-in-production-use-openssl-rand-hex-32
+# JWT Authentication
+SECRET_KEY=your-super-secret-key-change-in-production
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 
-# Rate Limiting Configuration
+# Rate Limiting
 RATE_LIMIT_PER_MINUTE=60
 
-# Application Configuration
+# Application
 DEBUG=true
+
+# Cloudinary (for media uploads)
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 ```
 
-### Frontend (.env)
+### Frontend (`.env`)
+
 ```env
 VITE_API_URL=http://localhost:8000/api
 ```
 
-## Demo Credentials
+---
 
-Register a new account or use the credentials provided by the admin.
+## API Documentation
 
-## API Endpoints
+### Base URL
+```
+http://localhost:8000/api
+```
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login and get JWT token
-- `GET /api/auth/me` - Get current user info
-- `PUT /api/auth/profile` - Update profile
+### Authentication Endpoints
 
-### Courses
-- `GET /api/courses` - List all courses
-- `GET /api/courses/{id}` - Get course details
-- `POST /api/courses` - Create course (Admin)
-- `PUT /api/courses/{id}` - Update course (Admin)
-- `DELETE /api/courses/{id}` - Delete course (Admin)
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/auth/register` | Register new user | No |
+| POST | `/api/auth/login` | Login and get JWT token | No |
+| GET | `/api/auth/me` | Get current user info | Yes |
+| PUT | `/api/auth/profile` | Update user profile | Yes |
+| GET | `/api/auth/google/url` | Get Google OAuth URL | No |
+| POST | `/api/auth/google/callback` | Handle Google OAuth callback | No |
 
-### Lessons
-- `GET /api/courses/{id}/lessons` - Get course lessons
-- `POST /api/courses/{id}/lessons` - Add lesson (Admin)
+### User Management Endpoints
 
-### Progress
-- `GET /api/courses/{id}/progress` - Get user progress
-- `POST /api/courses/{id}/progress` - Update lesson progress
+| Method | Endpoint | Description | Auth Required | Role |
+|--------|----------|-------------|---------------|------|
+| GET | `/api/users` | Get all users | Yes | Admin |
+| GET | `/api/users/{user_id}` | Get specific user | Yes | Admin |
+| PUT | `/api/users/{user_id}/role` | Update user role | Yes | Admin |
+| POST | `/api/users/{user_id}/block` | Toggle user block | Yes | Admin |
 
-### Admin
-- `GET /api/users` - List all users (Admin)
-- `GET /api/audit-logs` - View audit logs (Admin)
-- `GET /api/analytics/stats` - Get analytics (Admin)
+### Course Endpoints
 
-## Database Architecture
+| Method | Endpoint | Description | Auth Required | Role |
+|--------|----------|-------------|---------------|------|
+| GET | `/api/courses` | List all courses | Yes | Any |
+| GET | `/api/courses/{course_id}` | Get course details | Yes | Any |
+| POST | `/api/courses` | Create new course | Yes | Admin |
+| PUT | `/api/courses/{course_id}` | Update course | Yes | Admin |
+| DELETE | `/api/courses/{course_id}` | Delete course | Yes | Admin |
+| GET | `/api/courses/with-enrollments` | Get courses with enrollment counts | Yes | Admin |
+| GET | `/api/categories` | Get all categories | No | - |
 
-### PostgreSQL (Relational)
-Stores structured, relational data:
-- **Users** - Account information, roles
-- **Courses** - Course metadata, pricing
-- **Enrollments** - User-course relationships
-- **Audit Logs** - Security and compliance tracking
+### Lesson Endpoints
 
-### MongoDB (NoSQL)
-Stores flexible, hierarchical data:
-- **Course Content** - Lessons with varying structures
-- **User Progress** - Completion tracking per lesson
+| Method | Endpoint | Description | Auth Required | Role |
+|--------|----------|-------------|---------------|------|
+| GET | `/api/courses/{course_id}/lessons` | Get course lessons | Yes | Any |
+| POST | `/api/courses/{course_id}/lessons` | Add lesson to course | Yes | Admin |
+| PUT | `/api/courses/{course_id}/lessons/{lesson_id}` | Update lesson | Yes | Admin |
+| DELETE | `/api/courses/{course_id}/lessons/{lesson_id}` | Delete lesson | Yes | Admin |
+
+### Enrollment & Progress Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/courses/{course_id}/enroll` | Enroll in course | Yes |
+| DELETE | `/api/courses/{course_id}/unenroll` | Unenroll from course | Yes |
+| GET | `/api/courses/{course_id}/progress` | Get course progress | Yes |
+| POST | `/api/courses/{course_id}/progress` | Update lesson progress | Yes |
+| GET | `/api/my-progress` | Get all user progress | Yes |
+| GET | `/api/learner/enrollments` | Get learner enrollments | Yes |
+
+### Analytics & Reporting Endpoints
+
+| Method | Endpoint | Description | Auth Required | Role |
+|--------|----------|-------------|---------------|------|
+| GET | `/api/analytics/stats` | Get platform stats | Yes | Admin |
+| GET | `/api/analytics/categories` | Category distribution | Yes | Admin |
+| GET | `/api/analytics/enrollment-trends` | Enrollment trends | Yes | Admin |
+| GET | `/api/analytics/user-growth` | User growth data | Yes | Admin |
+| GET | `/api/analytics/insights` | Platform insights | Yes | Admin |
+| GET | `/api/reports/courses` | Course report | Yes | Admin |
+| GET | `/api/reports/students` | Student report | Yes | Admin |
+| GET | `/api/reports/users` | User report | Yes | Admin |
+| GET | `/api/reports/activity` | Activity report | Yes | Admin |
+| GET | `/api/audit-logs` | Audit logs | Yes | Admin |
+
+### Discussion & Messaging Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/api/courses/{course_id}/discussions` | Get course discussions | Yes |
+| POST | `/api/courses/{course_id}/discussions` | Create discussion | Yes |
+| PUT | `/api/discussions/{comment_id}` | Update discussion | Yes |
+| DELETE | `/api/discussions/{comment_id}` | Delete discussion | Yes |
+| POST | `/api/discussions/{comment_id}/vote` | Vote on discussion | Yes |
+| POST | `/api/discussions/{comment_id}/reply` | Reply to message | Yes |
+| GET | `/api/admin/messages` | Get admin messages | Yes (Admin) |
+| GET | `/api/my-messages` | Get learner messages | Yes |
+
+### Chat & Direct Messaging Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/api/chat-partners` | Get chat partners | Yes |
+| GET | `/api/chats` | Get conversations | Yes |
+| GET | `/api/chats/{partner_id}` | Get messages with partner | Yes |
+| POST | `/api/chats/{partner_id}` | Send direct message | Yes |
+| PUT | `/api/chats/{partner_id}/read` | Mark messages read | Yes |
+
+### Learner Stats Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/api/learner/stats` | Get learner statistics | Yes |
+| GET | `/api/courses/{course_id}/leaderboard` | Get course leaderboard | Yes |
+| POST | `/api/courses/{course_id}/telemetry` | Track time spent | Yes |
+
+### Utility Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/` | API health check | No |
+| GET | `/api/health` | Health check | No |
+| POST | `/api/upload` | Upload course media | Yes (Admin) |
+
+### Request/Response Schemas
+
+#### User Registration
+```json
+POST /api/auth/register
+{
+  "email": "user@example.com",
+  "first_name": "John",
+  "last_name": "Doe",
+  "password": "Password123",
+  "role": "learner"  // or "admin"
+}
+```
+
+#### User Login
+```json
+POST /api/auth/login
+{
+  "email": "user@example.com",
+  "password": "Password123"
+}
+```
+
+#### Course Creation
+```json
+POST /api/courses
+{
+  "title": "Introduction to Python",
+  "description": "Learn Python from scratch",
+  "category": "Programming",
+  "level": "Beginner",
+  "duration": "4 hours",
+  "thumbnail_url": "https://...",
+  "banner_url": "https://..."
+}
+```
+
+#### Lesson Creation
+```json
+POST /api/courses/{course_id}/lessons
+{
+  "title": "Variables and Data Types",
+  "type": "video",  // or "text"
+  "duration": "15 minutes",
+  "content": "https://video-url.com/...",
+  "notes": "Additional notes..."
+}
+```
+
+#### Progress Update
+```json
+POST /api/courses/{course_id}/progress
+{
+  "lesson_id": "lesson-mongo-id",
+  "completed": true
+}
+```
+
+---
+
+## Database Design
+
+### Why Dual Database Architecture?
+
+This project demonstrates the appropriate use of both SQL and NoSQL databases:
+
+### PostgreSQL (Relational) - Structured Data
+
+**Use Cases:**
+- User accounts and authentication
+- Course metadata
+- Enrollments
+- Audit logs
+- Discussion comments
+
+**Rationale:**
+- **ACID Compliance**: Critical for financial and user data
+- **Structured Relationships**: Users → Courses → Enrollments
+- **Query Flexibility**: Complex joins for analytics
+- **Maturity**: Battle-tested for production systems
+
+**Tables:**
+- `users` - User accounts with roles
+- `courses` - Course metadata
+- `enrollments` - User-course relationships
+- `comments` - Discussion posts
+- `votes` - Discussion votes
+- `audit_logs` - Security tracking
+- `conversations` - Direct messages
+- `telemetry` - Time tracking data
+
+### MongoDB (NoSQL) - Flexible Content
+
+**Use Cases:**
+- Course lessons (varying structures)
+- User progress (variable per user)
+- Rich content with different schemas
+
+**Rationale:**
+- **Flexible Schema**: Lessons can have different content types
+- **Scalability**: Handle growing content libraries
+- **Document Model**: Natural fit for lesson-progress relationships
+- **Rapid Development**: Easy schema evolution
+
+**Collections:**
+- `lessons` - Course content with video/text
+- `progress` - User progress per course
+- `course_telemetry` - Detailed time tracking
+
+---
 
 ## Security Features
 
-- **Password Hashing** - bcrypt with salt
-- **JWT Tokens** - Stateless authentication with configurable expiration
-- **Role-Based Access** - Admin/Learner permissions
-- **Audit Logging** - All actions tracked with IP and user agent
-- **Input Validation** - Pydantic schemas with XSS sanitization
-- **Password Complexity** - Requires uppercase, lowercase, and digit
-- **Rate Limiting** - 5 req/min (register), 10 req/min (login)
-- **CORS Protection** - Configured for production
-- **Secure Configuration** - JWT secret loaded from environment variables
+| Feature | Implementation |
+|---------|---------------|
+| Password Hashing | bcrypt with salt |
+| Authentication | JWT tokens with expiration |
+| Role-Based Access | Admin/Learner permissions |
+| Input Validation | Pydantic schemas |
+| XSS Protection | HTML sanitization |
+| Rate Limiting | slowapi (5-10 req/min) |
+| CORS Protection | Configured for frontend |
+| Audit Logging | All actions tracked |
+| IP Tracking | Captured in audit logs |
+| User Agent Tracking | Stored for investigation |
 
-## Microservices Decomposition
+---
 
-The current monolith can be split into:
+## Microservices Architecture
 
-1. **Auth Service** - User authentication and authorization
-2. **Course Service** - Course and lesson management
-3. **Progress Service** - User progress tracking
-4. **Analytics Service** - Reporting and analytics
+### Current Monolithic Structure
 
-Each service would have its own database and communicate via REST or message queue.
+The backend is currently a monolith but structured with clear module separation:
+
+```
+backend/app/
+├── main.py          # FastAPI application (entry point)
+├── auth.py          # Authentication module
+├── models.py        # SQLAlchemy models
+├── schemas.py       # Pydantic schemas
+├── database.py      # PostgreSQL configuration
+└── mongo_service.py # MongoDB operations
+```
+
+### Proposed Microservices Decomposition
+
+To scale the application, we would decompose into:
+
+#### 1. **Auth Service** (`auth-service`)
+- **Responsibility**: User registration, login, JWT token management
+- **Database**: PostgreSQL (users table)
+- **API**:
+  - POST /register
+  - POST /login
+  - POST /refresh
+  - GET /me
+
+#### 2. **Course Service** (`course-service`)
+- **Responsibility**: Course CRUD, lesson management
+- **Database**: PostgreSQL (courses) + MongoDB (lessons)
+- **API**:
+  - CRUD /courses
+  - CRUD /courses/{id}/lessons
+  - GET /categories
+
+#### 3. **Enrollment Service** (`enrollment-service`)
+- **Responsibility**: User enrollments, progress tracking
+- **Database**: PostgreSQL (enrollments) + MongoDB (progress)
+- **API**:
+  - POST /enroll
+  - DELETE /unenroll
+  - GET /progress
+  - PUT /progress
+
+#### 4. **Analytics Service** (`analytics-service`)
+- **Responsibility**: Reporting, insights, leaderboards
+- **Database**: PostgreSQL + MongoDB
+- **API**:
+  - GET /stats
+  - GET /reports/*
+  - GET /leaderboards
+
+#### 5. **Communication Service** (`communication-service`)
+- **Responsibility**: Discussions, messaging, notifications
+- **Database**: PostgreSQL
+- **API**:
+  - CRUD /discussions
+  - CRUD /messages
+  - WebSocket /ws
+
+### Inter-Service Communication
+
+- **Synchronous**: REST APIs for direct queries
+- **Asynchronous**: RabbitMQ/Kafka for events (enrollment, progress updates)
+- **API Gateway**: Single entry point for all services
+
+### Benefits of Microservices
+
+1. **Independent Scaling**: Scale auth independently from courses
+2. **Technology Flexibility**: Use different databases per service
+3. **Team Autonomy**: Separate teams for each domain
+4. **Fault Isolation**: Failure in one service doesn't cascade
+5. **Deployment Flexibility**: Deploy services independently
+
+---
+
+## Design Decisions & Trade-offs
+
+### 1. FastAPI over Flask/Django
+
+**Decision**: Use FastAPI for the backend.
+
+**Rationale**:
+- Automatic OpenAPI documentation
+- Native async support for better performance
+- Type validation with Pydantic
+- Modern Python features
+
+**Trade-off**: Smaller ecosystem compared to Django, but sufficient for this prototype.
+
+### 2. React with Vite
+
+**Decision**: Use React 19 with Vite build tool.
+
+**Rationale**:
+- Fast development server
+- Optimized production builds
+- Large ecosystem
+- Modern hooks API
+
+**Trade-off**: Client-side rendering SEO challenges (acceptable for LMS dashboard).
+
+### 3. JWT over Sessions
+
+**Decision**: Stateless JWT authentication.
+
+**Rationale**:
+- Scalable across multiple servers
+- No session storage needed
+- Mobile-friendly tokens
+
+**Trade-off**: Token invalidation requires additional mechanisms (blocklist).
+
+### 4. Dual Database
+
+**Decision**: PostgreSQL + MongoDB.
+
+**Rationale**:
+- PostgreSQL for ACID-critical data (users, payments)
+- MongoDB for flexible content (lessons, progress)
+
+**Trade-off**: Additional complexity in data synchronization.
+
+### 5. Tailwind CSS
+
+**Decision**: Use Tailwind for styling.
+
+**Rationale**:
+- Rapid UI development
+- Consistent design system
+- Small bundle size (purged CSS)
+- Easy theming (dark mode)
+
+**Trade-off**: Learning curve for team, HTML can become verbose.
+
+### 6. Rate Limiting Implementation
+
+**Decision**: Use slowapi for rate limiting.
+
+**Trade-off**:
+- Adds latency for legitimate users if too aggressive
+- Need to tune limits based on usage patterns
+
+### 7. Cloudinary for Media
+
+**Decision**: Use Cloudinary for image/video uploads.
+
+**Rationale**:
+- Handles large files
+- Automatic optimization
+- CDN delivery
+- Transformation capabilities
+
+**Trade-off**: External dependency, costs at scale.
+
+---
 
 ## Project Structure
 
@@ -181,38 +618,52 @@ Each service would have its own database and communicate via REST or message que
 learnflow_app/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py          # FastAPI application
-│   │   ├── models.py        # SQLAlchemy models
-│   │   ├── schemas.py       # Pydantic schemas
-│   │   ├── auth.py          # Authentication & JWT
-│   │   ├── database.py      # PostgreSQL config
-│   │   └── mongo_service.py # MongoDB operations
-│   ├── .env                 # Environment variables
-│   ├── requirements.txt
-│   └── Dockerfile
+│   │   ├── __init__.py
+│   │   ├── main.py              # FastAPI application
+│   │   ├── models.py            # SQLAlchemy ORM models
+│   │   ├── schemas.py          # Pydantic request/response schemas
+│   │   ├── auth.py              # JWT authentication logic
+│   │   ├── database.py         # PostgreSQL configuration
+│   │   └── mongo_service.py     # MongoDB operations
+│   ├── .env                     # Environment variables
+│   ├── requirements.txt         # Python dependencies
+│   └── Dockerfile               # Backend container
 ├── frontend/
 │   ├── src/
-│   │   ├── components/      # Reusable components
-│   │   ├── pages/          # Page components
-│   │   ├── contexts/       # React contexts
-│   │   ├── services/        # API services
-│   │   └── App.jsx          # Main app component
-│   ├── .env                # API URL config
-│   ├── package.json
-│   └── Dockerfile
-├── .vscode/                # VSCode settings
+│   │   ├── components/          # Reusable UI components
+│   │   │   ├── auth/           # Authentication components
+│   │   │   ├── common/         # Common components
+│   │   │   └── layouts/        # Layout components
+│   │   ├── pages/              # Page components
+│   │   │   ├── admin/          # Admin pages
+│   │   │   ├── auth/           # Auth pages
+│   │   │   ├── learner/        # Learner pages
+│   │   │   └── public/         # Public pages
+│   │   ├── contexts/           # React contexts
+│   │   ├── services/           # API service functions
+│   │   ├── App.jsx             # Main app component
+│   │   ├── main.jsx            # Entry point
+│   │   └── index.css           # Global styles
+│   ├── .env                    # Frontend config
+│   ├── package.json            # Node dependencies
+│   ├── tailwind.config.js      # Tailwind configuration
+│   └── vite.config.js          # Vite configuration
+├── design/
+│   └── WIREFRAMES.md           # UI wireframes and design
+├── docker-compose.yml          # Docker orchestration
+├── lms.json                    # API documentation (exported from Swagger)
 ├── .gitignore
 └── README.md
 ```
 
-## VSCode Setup
+---
 
-For Python import resolution:
-1. Press `Ctrl+Shift+P`
-2. Select "Python: Select Interpreter"
-3. Choose `backend/venv/bin/python`
+## License
 
-Or reload the window: `Ctrl+Shift+P` → "Developer: Reload Window"
+This project is for demonstration purposes as part of a technical assessment.
 
-. /home/wachira/Documents/Kbc\ project/Kbc_Assessment/learnflow_app/backend/venv/bin/activate && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+---
 
+## Author
+
+LearnFlow LMS - Technical Assessment Project

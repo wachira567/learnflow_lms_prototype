@@ -10,7 +10,8 @@ import {
   Calendar,
   CheckCircle,
   Clock,
-  PlayCircle
+  PlayCircle,
+  Shield
 } from "lucide-react";
 import analyticsService from "../../services/analyticsService";
 import { courseService } from "../../services/courseService";
@@ -44,12 +45,18 @@ const Analytics = () => {
     date_from: "",
     date_to: "",
   });
+  const [auditFilters, setAuditFilters] = useState({
+    user_id: "",
+    action: "",
+    search: "",
+  });
 
   // Report data states
   const [courseReport, setCourseReport] = useState(null);
   const [studentReport, setStudentReport] = useState(null);
   const [userReport, setUserReport] = useState(null);
   const [activityReport, setActivityReport] = useState(null);
+  const [auditLogs, setAuditLogs] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
   
   // Pagination limit state
@@ -81,7 +88,7 @@ const Analytics = () => {
   const generateCourseReport = async () => {
     setReportLoading(true);
     try {
-      const data = await analyticsService.getCourseReport(courseFilters);
+      const data = await analyticsService.getCourseReport({...courseFilters, limit: reportLimit});
       setCourseReport(data);
     } catch (err) {
       console.error("Failed to generate course report:", err);
@@ -93,7 +100,7 @@ const Analytics = () => {
   const generateStudentReport = async () => {
     setReportLoading(true);
     try {
-      const data = await analyticsService.getStudentReport(studentFilters);
+      const data = await analyticsService.getStudentReport({...studentFilters, limit: reportLimit});
       setStudentReport(data);
     } catch (err) {
       console.error("Failed to generate student report:", err);
@@ -105,7 +112,7 @@ const Analytics = () => {
   const generateUserReport = async () => {
     setReportLoading(true);
     try {
-      const data = await analyticsService.getUserReport(userFilters);
+      const data = await analyticsService.getUserReport({...userFilters, limit: reportLimit});
       setUserReport(data);
     } catch (err) {
       console.error("Failed to generate user report:", err);
@@ -117,10 +124,25 @@ const Analytics = () => {
   const generateActivityReport = async () => {
     setReportLoading(true);
     try {
-      const data = await analyticsService.getActivityReport(activityFilters);
+      const data = await analyticsService.getActivityReport({...activityFilters, limit: reportLimit});
       setActivityReport(data);
     } catch (err) {
       console.error("Failed to generate activity report:", err);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const generateAuditLogsReport = async () => {
+    setReportLoading(true);
+    try {
+      const data = await analyticsService.getAuditLogs({
+        ...auditFilters,
+        limit: reportLimit
+      });
+      setAuditLogs(data);
+    } catch (err) {
+      console.error("Failed to fetch audit logs:", err);
     } finally {
       setReportLoading(false);
     }
@@ -224,6 +246,7 @@ const Analytics = () => {
             { id: "students", label: "Student Report", icon: Users },
             { id: "users", label: "User Report", icon: GraduationCap },
             { id: "activity", label: "Activity Report", icon: Clock },
+            { id: "audit", label: "Audit Logs", icon: Shield },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -758,6 +781,156 @@ const Analytics = () => {
                       ))}
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Audit Logs */}
+        {activeTab === "audit" && (
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                Audit Logs - Security Trail
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                View all user activity for security investigations and compliance reporting.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Search User
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Search by name or email"
+                    value={auditFilters.search}
+                    onChange={(e) => setAuditFilters({ ...auditFilters, search: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    User ID
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Filter by user ID"
+                    value={auditFilters.user_id}
+                    onChange={(e) => setAuditFilters({ ...auditFilters, user_id: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Action Type
+                  </label>
+                  <select
+                    value={auditFilters.action}
+                    onChange={(e) => setAuditFilters({ ...auditFilters, action: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  >
+                    <option value="">All Actions</option>
+                    <option value="user_registered">User Registered</option>
+                    <option value="user_login">User Login</option>
+                    <option value="google_oauth_login">Google Login</option>
+                    <option value="course_created">Course Created</option>
+                    <option value="course_updated">Course Updated</option>
+                    <option value="course_deleted">Course Deleted</option>
+                    <option value="lesson_created">Lesson Created</option>
+                    <option value="lesson_completed">Lesson Completed</option>
+                    <option value="lesson_incomplete">Lesson Incomplete</option>
+                    <option value="course_enrolled">Course Enrolled</option>
+                    <option value="course_unenrolled">Course Unenrolled</option>
+                    <option value="course_completed">Course Completed</option>
+                  </select>
+                </div>
+                <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 mt-4 md:mt-0">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                      Results:
+                    </label>
+                    <select
+                      value={reportLimit}
+                      onChange={(e) => setReportLimit(Number(e.target.value))}
+                      className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm"
+                    >
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={generateAuditLogsReport}
+                    disabled={reportLoading}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    <Shield className="w-4 h-4" />
+                    {reportLoading ? "Loading..." : "View Logs"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Audit Logs Results */}
+            {auditLogs && (
+              <div className="p-6">
+                <div className="mb-4">
+                  <h4 className="font-semibold text-slate-900 dark:text-white">
+                    {auditLogs.length} log entries found
+                  </h4>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-700">
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">When</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Who</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Action</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400">Resource</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400 hidden md:table-cell">IP Address</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500 dark:text-slate-400 hidden lg:table-cell">User Agent</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {auditLogs.map((log) => (
+                        <tr key={log.id} className="border-b border-slate-100 dark:border-slate-700">
+                          <td className="py-3 px-4 text-sm text-slate-900 dark:text-white whitespace-nowrap">
+                            {log.created_at ? new Date(log.created_at).toLocaleString() : '-'}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            <div className="text-slate-900 dark:text-white font-medium">
+                              {log.user_name || log.user_email || 'System'}
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              {log.user_email ? `ID: ${log.user_id}` : ''}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              log.action?.includes('login') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                              log.action?.includes('course') ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                              log.action?.includes('lesson') ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                              'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                            }`}>
+                              {log.action?.replace(/_/g, ' ')}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">
+                            {log.resource_type ? `${log.resource_type}${log.resource_id ? ' #' + log.resource_id : ''}` : '-'}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400 hidden md:table-cell">
+                            {log.ip_address || '-'}
+                          </td>
+                          <td className="py-3 px-4 text-xs text-slate-400 dark:text-slate-500 hidden lg:table-cell max-w-xs truncate" title={log.user_agent}>
+                            {log.user_agent || '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
