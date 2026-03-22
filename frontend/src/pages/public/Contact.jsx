@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, Send, CheckCircle } from 'lucide-react';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { Mail, Phone, MapPin, Send, CheckCircle } from "lucide-react";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -28,28 +28,28 @@ const Contact = () => {
     setIsSubmitted(true);
     setTimeout(() => {
       setIsSubmitted(false);
-      setFormData({ name: '', email: '', subject: '', message: '' });
+      setFormData({ name: "", email: "", subject: "", message: "" });
     }, 3000);
   };
 
   const contactInfo = [
     {
       icon: Mail,
-      title: 'Email Us',
-      content: 'hello@learnflow.com',
-      description: 'We will respond within 24 hours',
+      title: "Email Us",
+      content: "hello@learnflow.com",
+      description: "We will respond within 24 hours",
     },
     {
       icon: Phone,
-      title: 'Call Us',
-      content: '+1 (234) 567-890',
-      description: 'Mon-Fri from 9am to 6pm',
+      title: "Call Us",
+      content: "+1 (234) 567-890",
+      description: "Mon-Fri from 9am to 6pm",
     },
     {
       icon: MapPin,
-      title: 'Visit Us',
-      content: '123 Learning Street',
-      description: 'Education City, EC 12345',
+      title: "Visit Us",
+      content: "123 Learning Street",
+      description: "Education City, EC 12345",
     },
   ];
 
@@ -58,19 +58,15 @@ const Contact = () => {
       {/* Hero Section */}
       <section className="relative py-20 lg:py-32 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-secondary-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800" />
-        
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            {...fadeInUp}
-            className="text-center max-w-3xl mx-auto"
-          >
+          <motion.div {...fadeInUp} className="text-center max-w-3xl mx-auto">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-white mb-6">
-              Get in{' '}
-              <span className="gradient-text">Touch</span>
+              Get in <span className="gradient-text">Touch</span>
             </h1>
             <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400">
-              Have a question or feedback? We would love to hear from you.
-              Our team is here to help.
+              Have a question or feedback? We would love to hear from you. Our
+              team is here to help.
             </p>
           </motion.div>
         </div>
@@ -95,7 +91,9 @@ const Contact = () => {
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
                   {info.title}
                 </h3>
-                <p className="text-primary-600 font-medium mb-1">{info.content}</p>
+                <p className="text-primary-600 font-medium mb-1">
+                  {info.content}
+                </p>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   {info.description}
                 </p>

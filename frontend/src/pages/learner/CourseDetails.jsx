@@ -10,7 +10,6 @@ import {
   Star,
   CheckCircle,
   ChevronRight,
-  Award,
   Globe,
   Calendar,
   ArrowLeft,
@@ -119,7 +118,7 @@ const CourseDetails = () => {
         <div className="lg:col-span-2 space-y-6">
           <div className="relative rounded-2xl overflow-hidden">
             <img
-              src={course.thumbnail}
+              src={course.banner_url || course.thumbnail_url || '/placeholder-course.jpg'}
               alt={course.title}
               className="w-full h-64 lg:h-96 object-cover"
             />
@@ -143,7 +142,7 @@ const CourseDetails = () => {
                 </div>
                 <div className="flex items-center space-x-1">
                   <Users className="w-5 h-5" />
-                  <span>{course.enrolledStudents.toLocaleString()} students</span>
+                  <span>{(course.enrolledStudents || 0).toLocaleString()} students</span>
                 </div>
               </div>
             </div>
@@ -188,19 +187,28 @@ const CourseDetails = () => {
                       What you will learn
                     </h3>
                     <div className="grid sm:grid-cols-2 gap-3">
-                      {[
-                        'Master the fundamentals',
-                        'Build real-world projects',
-                        'Get hands-on experience',
-                        'Learn industry best practices',
-                        'Understand core concepts',
-                        'Prepare for advanced topics',
-                      ].map((item, index) => (
-                        <div key={index} className="flex items-start space-x-3">
-                          <CheckCircle className="w-5 h-5 text-success-500 flex-shrink-0 mt-0.5" />
-                          <span className="text-slate-600 dark:text-slate-400">{item}</span>
-                        </div>
-                      ))}
+                      {course.lessons && course.lessons.length > 0 ? (
+                        course.lessons.slice(0, 6).map((lesson, index) => (
+                          <div key={index} className="flex items-start space-x-3">
+                            <CheckCircle className="w-5 h-5 text-success-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-slate-600 dark:text-slate-400">{lesson.title}</span>
+                          </div>
+                        ))
+                      ) : (
+                        [
+                          'Comprehensive course materials',
+                          'Hands-on exercises and quizzes',
+                          'Real-world examples and case studies',
+                          'Expert guidance and support',
+                          'Flexible learning schedule',
+                          'Industry-recognized skills',
+                        ].map((item, index) => (
+                          <div key={index} className="flex items-start space-x-3">
+                            <CheckCircle className="w-5 h-5 text-success-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-slate-600 dark:text-slate-400">{item}</span>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
 
@@ -376,10 +384,9 @@ const CourseDetails = () => {
               </h4>
               <ul className="space-y-3">
                 {[
-                  { icon: Play, text: `${course.duration} on-demand video` },
-                  { icon: BookOpen, text: `${course.lessonsCount} lessons` },
+                  { icon: Play, text: `${course.duration || '0'} on-demand video` },
+                  { icon: BookOpen, text: `${course.lessonsCount || 0} lessons` },
                   { icon: Calendar, text: 'Lifetime access' },
-                  { icon: Award, text: 'Certificate of completion' },
                 ].map((item, index) => (
                   <li key={index} className="flex items-center space-x-3 text-slate-600 dark:text-slate-400">
                     <item.icon className="w-5 h-5 text-slate-400" />

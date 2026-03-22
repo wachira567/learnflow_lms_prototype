@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  User,
   Mail,
   Camera,
-  Lock,
-  Bell,
-  Shield,
   Save,
   CheckCircle,
 } from "lucide-react";
@@ -28,9 +24,6 @@ const Profile = () => {
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
     email: user?.email || "",
-    bio: "",
-    website: "",
-    location: "",
   });
 
   // Fetch learner stats from backend
@@ -233,52 +226,6 @@ const Profile = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Bio
-                </label>
-                <textarea
-                  name="bio"
-                  value={formData.bio}
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                  rows={4}
-                  placeholder="Tell us about yourself..."
-                  className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all resize-none"
-                />
-              </div>
-
-              <div className="grid sm:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Website
-                  </label>
-                  <input
-                    type="url"
-                    name="website"
-                    value={formData.website}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    placeholder="https://yourwebsite.com"
-                    className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Location
-                  </label>
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    placeholder="City, Country"
-                    className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-                  />
-                </div>
-              </div>
-
               {isEditing && (
                 <div className="flex justify-end">
                   <button
@@ -298,85 +245,6 @@ const Profile = () => {
                 </div>
               )}
             </form>
-          </div>
-
-          {/* Settings Cards */}
-          <div className="grid sm:grid-cols-2 gap-6 mt-6">
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
-                  <Lock className="w-5 h-5 text-amber-600" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-slate-900 dark:text-white">
-                    Password
-                  </h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Change your password
-                  </p>
-                </div>
-              </div>
-              <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                Update Password
-              </button>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
-                  <Bell className="w-5 h-5 text-primary-600" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-slate-900 dark:text-white">
-                    Notifications
-                  </h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Manage your notifications
-                  </p>
-                </div>
-              </div>
-              <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                Configure
-              </button>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-emerald-600" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-slate-900 dark:text-white">
-                    Privacy
-                  </h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Manage your privacy settings
-                  </p>
-                </div>
-              </div>
-              <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                Manage Privacy
-              </button>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-danger-100 dark:bg-danger-900/30 rounded-lg flex items-center justify-center">
-                  <User className="w-5 h-5 text-danger-600" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-slate-900 dark:text-white">
-                    Account
-                  </h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Delete your account
-                  </p>
-                </div>
-              </div>
-              <button className="text-danger-600 hover:text-danger-700 text-sm font-medium">
-                Delete Account
-              </button>
-            </div>
           </div>
         </motion.div>
       </div>

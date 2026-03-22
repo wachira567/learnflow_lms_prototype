@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import {
   BookOpen,
   Clock,
-  Trophy,
   TrendingUp,
   Play,
   ChevronRight,
@@ -60,12 +59,7 @@ const LearnerDashboard = () => {
           icon: Clock, 
           color: 'bg-secondary-100 text-secondary-600' 
         },
-        { 
-          label: 'Certificates', 
-          value: stats.courses_completed || 0, 
-          icon: Trophy, 
-          color: 'bg-amber-100 text-amber-600' 
-        },
+
         { 
           label: 'Total Enrolled', 
           value: stats.total_enrolled || 0, 
@@ -76,7 +70,6 @@ const LearnerDashboard = () => {
     : [
         { label: 'Courses in Progress', value: 0, icon: BookOpen, color: 'bg-primary-100 text-primary-600' },
         { label: 'Lessons Completed', value: 0, icon: Clock, color: 'bg-secondary-100 text-secondary-600' },
-        { label: 'Certificates', value: 0, icon: Trophy, color: 'bg-amber-100 text-amber-600' },
         { label: 'Total Enrolled', value: 0, icon: TrendingUp, color: 'bg-emerald-100 text-emerald-600' },
       ];
 
@@ -215,8 +208,18 @@ const LearnerDashboard = () => {
               >
                 <Link to={`/courses/${course.id}`} className="group block">
                   <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all duration-300">
-                    <div className="relative h-40 overflow-hidden bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                      <BookOpen className="w-12 h-12 text-primary-600" />
+                    <div className="relative h-40 overflow-hidden bg-primary-100 dark:bg-primary-900/30">
+                      {course.thumbnail_url || course.banner_url ? (
+                        <img 
+                          src={course.banner_url || course.thumbnail_url} 
+                          alt={course.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <BookOpen className="w-12 h-12 text-primary-600" />
+                        </div>
+                      )}
                       <div className="absolute top-3 left-3">
                         <span className="px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm text-xs font-medium text-slate-700 dark:text-slate-300 rounded-full">
                           {course.category || 'General'}

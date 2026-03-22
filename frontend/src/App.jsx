@@ -12,6 +12,8 @@ import Home from "./pages/public/Home";
 import Features from "./pages/public/Features";
 import About from "./pages/public/About";
 import Contact from "./pages/public/Contact";
+import PrivacyPolicy from "./pages/public/PrivacyPolicy";
+import TermsOfService from "./pages/public/TermsOfService";
 
 // Auth pages
 import Login from "./pages/auth/Login";
@@ -55,6 +57,8 @@ function App() {
           <Route path="/features" element={<Features />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
         </Route>
 
         {/* Learner routes - protected - ONLY learners, admins redirect to admin */}

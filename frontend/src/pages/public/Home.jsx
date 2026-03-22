@@ -85,9 +85,9 @@ const Home = () => {
                 transition={{ duration: 0.6, delay: 0.1 }}
                 className="text-5xl sm:text-7xl font-black tracking-tight leading-[1.05] mb-6 text-slate-900 dark:text-white"
               >
-                Master modern <br className="hidden lg:block"/>
+                Unlock your <br className="hidden lg:block"/>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-secondary-600">
-                  development.
+                  learning potential.
                 </span>
               </motion.h1>
 
@@ -97,8 +97,8 @@ const Home = () => {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-xl leading-relaxed"
               >
-                Stop watching endless tutorials. Start building real projects. 
-                Our interactive LMS puts a production-grade development environment directly in your browser.
+                Learn at your own pace with expert-led courses. Track your progress 
+                and gain valuable skills for your career.
               </motion.p>
 
               <motion.div 
@@ -132,11 +132,11 @@ const Home = () => {
               >
                 <div className="flex items-center gap-4 mb-6 border-b border-slate-100 dark:border-slate-700 pb-4">
                   <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center">
-                    <Code className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                    <BookOpen className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">Active IDE Session</h3>
-                    <p className="text-sm text-slate-500">React Server Components</p>
+                    <h3 className="font-bold text-slate-900 dark:text-white">Active Learning Session</h3>
+                    <p className="text-sm text-slate-500">Course: Web Development</p>
                   </div>
                 </div>
                 {/* Mock Code Lines */}
@@ -229,11 +229,11 @@ const Home = () => {
           
           <FadeUp className="text-center max-w-3xl mx-auto mb-20">
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-6">
-              Everything you need to ship.
+              Learn. Grow. Succeed.
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-400">
-              We've combined video learning, interactive coding challenges, and career 
-              analytics into a single, seamless platform.
+              Access quality courses, track your progress, and achieve your learning goals 
+              with our intuitive learning platform.
             </p>
           </FadeUp>
 
@@ -261,8 +261,8 @@ const Home = () => {
                   <BookOpen className="w-6 h-6 text-secondary-600 dark:text-secondary-400" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Curated Paths</h3>
-                  <p className="text-slate-600 dark:text-slate-400">Step-by-step guides from Junior to Senior.</p>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Structured Learning Paths</h3>
+                  <p className="text-slate-600 dark:text-slate-400">Follow guided paths from beginner to expert.</p>
                 </div>
               </div>
             </FadeUp>
@@ -277,8 +277,8 @@ const Home = () => {
                   <Users className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold mb-2">Community Driven</h3>
-                  <p className="text-slate-400">Join thousands of engineers in our private Discord.</p>
+                  <h3 className="text-xl font-bold mb-2">Supportive Community</h3>
+                  <p className="text-slate-400">Connect with fellow learners and grow together.</p>
                 </div>
               </div>
             </FadeUp>
@@ -309,10 +309,10 @@ const Home = () => {
       <section className="bg-slate-50 dark:bg-slate-800/20 py-24 border-y border-slate-100 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <AnimatedCounter value="250+" label="COURSES" />
-            <AnimatedCounter value="45K" label="STUDENTS" />
-            <AnimatedCounter value="120" label="EXPERT MENTORS" />
-            <AnimatedCounter value="99%" label="SUCCESS RATE" />
+            <AnimatedCounter value="100+" label="COURSES" />
+            <AnimatedCounter value="5K+" label="LEARNERS" />
+            <AnimatedCounter value="50+" label="INSTRUCTORS" />
+            <AnimatedCounter value="95%" label="SATISFACTION" />
           </div>
         </div>
       </section>
@@ -334,16 +334,16 @@ const Home = () => {
         <FadeUp className="relative z-10 max-w-4xl mx-auto">
           <Sparkles className="w-12 h-12 text-primary-400 mx-auto mb-8 animate-pulse" />
           <h2 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tight">
-            Stop waiting. <br/> Start building.
+            Start your journey today. <br/>Unlock new skills.
           </h2>
           <p className="text-xl md:text-2xl text-slate-300 mb-12 max-w-2xl mx-auto">
-            Get instant access to over 250+ development courses, interactive labs, and an incredible community.
+            Join thousands of learners already transforming their careers with quality education.
           </p>
           <Link 
             to="/register" 
             className="group inline-flex items-center justify-center gap-3 px-10 py-5 bg-white text-slate-900 rounded-2xl font-bold text-lg hover:scale-105 active:scale-95 shadow-2xl transition-all"
           >
-            Create Your Account
+            Get Started Free
             <ArrowRight className="w-5 h-5 text-primary-600 group-hover:translate-x-1 transition-transform" />
           </Link>
         </FadeUp>

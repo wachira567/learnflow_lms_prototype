@@ -73,6 +73,11 @@ export const courseService = {
     return await api.post(`/courses/${courseId}/enroll`);
   },
 
+  // Unenroll from a course
+  unenrollCourse: async (courseId) => {
+    return await api.delete(`/courses/${courseId}/unenroll`);
+  },
+
   // Get user's all progress
   getMyProgress: async () => {
     return await api.get("/my-progress");

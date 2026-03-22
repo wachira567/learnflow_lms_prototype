@@ -73,6 +73,25 @@ class UserLogin(BaseModel):
     password: str
 
 
+class PasswordChange(BaseModel):
+    """Schema for changing password"""
+
+    current_password: str
+    new_password: str = Field(..., min_length=8, max_length=100)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        """Validate new password meets complexity requirements"""
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"[0-9]", v):
+            raise ValueError("Password must contain at least one digit")
+        return v
+
+
 # ============== AUTH SCHEMAS ==============
 
 
@@ -97,9 +116,6 @@ class GoogleCallbackRequest(BaseModel):
     code: str
 
 
-
-
-
 # ============== COURSE SCHEMAS ==============
 
 
@@ -112,15 +128,17 @@ class CourseBase(BaseModel):
     level: str = Field(..., pattern="^(Beginner|Intermediate|Advanced)$")
     duration: str = Field(..., min_length=1, max_length=50)
 
-    @field_validator('title', 'description', 'category')
+    @field_validator("title", "description", "category")
     @classmethod
     def sanitize_input(cls, v: str) -> str:
         """Sanitize text input to prevent XSS attacks"""
         if v:
             # Remove script tags
-            v = re.sub(r'<script[^>]*>.*?</script>', '', v, flags=re.DOTALL | re.IGNORECASE)
+            v = re.sub(
+                r"<script[^>]*>.*?</script>", "", v, flags=re.DOTALL | re.IGNORECASE
+            )
             # Remove inline event handlers
-            v = re.sub(r'on\w+\s*=', '', v, flags=re.IGNORECASE)
+            v = re.sub(r"on\w+\s*=", "", v, flags=re.IGNORECASE)
         return v.strip()
 
 
@@ -155,8 +173,8 @@ class CourseResponse(CourseBase):
     is_published: bool
     is_leaderboard_public: bool
     created_at: datetime
-    updated_at: datetime
-    
+    updated_at: Optional[datetime] = None
+
     # Enriched fields for frontend
     instructor: Optional[str] = "Instructor"
     instructorAvatar: Optional[str] = None
@@ -197,18 +215,22 @@ class LessonBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     type: LessonType = LessonType.VIDEO
     duration: str = Field(..., min_length=1, max_length=50)
-    content: Optional[str] = Field(None, max_length=10000)  # URL for video, text content for text lessons
+    content: Optional[str] = Field(
+        None, max_length=10000
+    )  # URL for video, text content for text lessons
     notes: Optional[str] = None  # Admin's supplementary notes or PDF link
 
-    @field_validator('title', 'content')
+    @field_validator("title", "content")
     @classmethod
     def sanitize_lesson_input(cls, v: Optional[str]) -> Optional[str]:
         """Sanitize lesson content to prevent XSS attacks"""
         if v:
             # Remove script tags
-            v = re.sub(r'<script[^>]*>.*?</script>', '', v, flags=re.DOTALL | re.IGNORECASE)
+            v = re.sub(
+                r"<script[^>]*>.*?</script>", "", v, flags=re.DOTALL | re.IGNORECASE
+            )
             # Remove inline event handlers
-            v = re.sub(r'on\w+\s*=', '', v, flags=re.IGNORECASE)
+            v = re.sub(r"on\w+\s*=", "", v, flags=re.IGNORECASE)
         return v.strip() if v else v
 
 
@@ -264,6 +286,7 @@ class ProgressResponse(BaseModel):
 
 class ProgressTelemetry(BaseModel):
     """Schema for time-tracking heartbeat"""
+
     lesson_id: str
     seconds_spent: int = Field(..., gt=0, le=60)
 
@@ -292,7 +315,7 @@ class CommentResponse(BaseModel):
     upvotes: int = 0
     downvotes: Optional[int] = None  # Admins only
     user_vote: int = 0  # 1 for upvote, -1 for downvote, 0 for none
-    
+
     # Context fields for inboxes
     course_title: Optional[str] = None
     lesson_title: Optional[str] = None
