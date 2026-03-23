@@ -192,9 +192,11 @@ npm run dev
 
 ## Environment Variables
 
+> **Important**: All required API keys and secrets are provided in our [Environment Setup Guide](https://docs.google.com/document/d/1GE1Qd-3u9wpCa-oIdrsz1zBZTsw_UvRBqd-i-cN339A/edit?usp=sharing). This document contains all the values you need to run the application.
+
 ### Creating the .env File
 
-Create a `.env` file in the project root (`learnflow_app/.env`) with the following variables:
+Create a `.env` file in the project root (`learnflow_app/.env`) with the values from the Environment Setup Guide above.
 
 ```env
 # Database Configuration (for Docker, these are handled by docker-compose)
