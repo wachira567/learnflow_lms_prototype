@@ -12,31 +12,11 @@ LearnFlow is a full-stack Learning Management System built with a modern archite
 
 ## High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Frontend                              │
-│  React 19 + Vite + Tailwind CSS + React Router              │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            │ HTTP/REST API
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                        Backend                               │
-│  FastAPI + SQLAlchemy + JWT Authentication                   │
-└─────────────────────────────────────────────────────────────┘
-                            │
-              ┌─────────────┴─────────────┐
-              │                           │
-              ▼                           ▼
-┌─────────────────────────┐  ┌─────────────────────────┐
-│      PostgreSQL         │  │       MongoDB           │
-│  (Relational Data)      │  │  (Flexible Content)     │
-│  - Users                │  │  - Lessons              │
-│  - Courses              │  │  - Progress             │
-│  - Enrollments          │  │  - Telemetry            │
-│  - Audit Logs           │  │                         │
-└─────────────────────────┘  └─────────────────────────┘
-```
+The system consists of three main layers:
+
+- **Frontend**: React 19 + Vite + Tailwind CSS + React Router
+- **Backend**: FastAPI + SQLAlchemy + JWT Authentication
+- **Databases**: PostgreSQL (Relational Data) + MongoDB (Flexible Content)
 
 ## Frontend Architecture
 
@@ -55,37 +35,17 @@ LearnFlow is a full-stack Learning Management System built with a modern archite
 frontend/src/
 ├── components/          # Reusable UI components
 │   ├── auth/           # Authentication components
-│   │   ├── GuestRoute.jsx
-│   │   └── ProtectedRoute.jsx
 │   ├── common/         # Common components
-│   │   ├── AdminSidebar.jsx
-│   │   ├── Footer.jsx
-│   │   ├── Navbar.jsx
-│   │   ├── Sidebar.jsx
-│   │   └── TopBar.jsx
 │   ├── discussions/    # Discussion components
-│   │   └── CourseDiscussions.jsx
 │   ├── layouts/        # Layout components
-│   │   ├── AdminLayout.jsx
-│   │   ├── DashboardLayout.jsx
-│   │   └── MainLayout.jsx
 │   └── leaderboard/    # Leaderboard components
-│       └── Leaderboard.jsx
 ├── contexts/           # React contexts
-│   ├── AuthContext.jsx
-│   └── ThemeContext.jsx
 ├── pages/              # Page components
 │   ├── admin/          # Admin pages
 │   ├── auth/           # Auth pages
 │   ├── learner/        # Learner pages
 │   └── public/         # Public pages
 ├── services/           # API service functions
-│   ├── analyticsService.js
-│   ├── api.js
-│   ├── authService.js
-│   ├── chatService.js
-│   ├── courseService.js
-│   └── learnerService.js
 ├── App.jsx             # Main app component
 ├── main.jsx            # Entry point
 └── index.css           # Global styles
@@ -150,7 +110,7 @@ LearnFlow uses both PostgreSQL and MongoDB to leverage the strengths of each:
 **Rationale:**
 
 - **ACID Compliance**: Critical for financial and user data
-- **Structured Relationships**: Users → Courses → Enrollments
+- **Structured Relationships**: Users to Courses to Enrollments
 - **Query Flexibility**: Complex joins for analytics
 - **Maturity**: Battle-tested for production systems
 
@@ -188,32 +148,14 @@ LearnFlow uses both PostgreSQL and MongoDB to leverage the strengths of each:
 
 ## Authentication Flow
 
-```
-┌──────────┐      ┌──────────┐      ┌──────────┐
-│  Client  │      │  Backend │      │ Database │
-└──────────┘      └──────────┘      └──────────┘
-     │                  │                  │
-     │ POST /login      │                  │
-     │─────────────────>│                  │
-     │                  │ Verify password  │
-     │                  │─────────────────>│
-     │                  │                  │
-     │                  │<─────────────────│
-     │                  │                  │
-     │                  │ Create JWT token │
-     │                  │─────────────────>│
-     │                  │                  │
-     │<─────────────────│                  │
-     │ JWT token        │                  │
-     │                  │                  │
-     │ GET /api/me      │                  │
-     │─────────────────>│                  │
-     │                  │ Verify JWT       │
-     │                  │─────────────────>│
-     │                  │                  │
-     │<─────────────────│                  │
-     │ User data        │                  │
-```
+The authentication flow works as follows:
+
+1. Client sends POST request to `/login` endpoint
+2. Backend verifies password against database
+3. Backend creates JWT token and returns it to client
+4. Client stores JWT token for subsequent requests
+5. Client sends GET request to `/api/me` with JWT token
+6. Backend verifies JWT and returns user data
 
 ## API Design
 
@@ -248,7 +190,7 @@ API endpoints are rate-limited to prevent abuse:
 - **Login**: 10 requests/minute
 - **Other endpoints**: 60 requests/minute
 
-## Design Decisions & Trade-offs
+## Design Decisions and Trade-offs
 
 ### 1. FastAPI over Flask/Django
 
@@ -338,7 +280,7 @@ API endpoints are rate-limited to prevent abuse:
 
 The backend is currently a monolith but structured with clear module separation. To scale the application, we would decompose into:
 
-### 1. Auth Service (`auth-service`)
+### 1. Auth Service
 
 - **Responsibility**: User registration, login, JWT token management
 - **Database**: PostgreSQL (users table)
@@ -348,7 +290,7 @@ The backend is currently a monolith but structured with clear module separation.
   - POST /refresh
   - GET /me
 
-### 2. Course Service (`course-service`)
+### 2. Course Service
 
 - **Responsibility**: Course CRUD, lesson management
 - **Database**: PostgreSQL (courses) + MongoDB (lessons)
@@ -357,7 +299,7 @@ The backend is currently a monolith but structured with clear module separation.
   - CRUD /courses/{id}/lessons
   - GET /categories
 
-### 3. Enrollment Service (`enrollment-service`)
+### 3. Enrollment Service
 
 - **Responsibility**: User enrollments, progress tracking
 - **Database**: PostgreSQL (enrollments) + MongoDB (progress)
@@ -367,7 +309,7 @@ The backend is currently a monolith but structured with clear module separation.
   - GET /progress
   - PUT /progress
 
-### 4. Analytics Service (`analytics-service`)
+### 4. Analytics Service
 
 - **Responsibility**: Reporting, insights, leaderboards
 - **Database**: PostgreSQL + MongoDB
@@ -376,7 +318,7 @@ The backend is currently a monolith but structured with clear module separation.
   - GET /reports/\*
   - GET /leaderboards
 
-### 5. Communication Service (`communication-service`)
+### 5. Communication Service
 
 - **Responsibility**: Discussions, messaging, notifications
 - **Database**: PostgreSQL
@@ -396,7 +338,7 @@ The backend is currently a monolith but structured with clear module separation.
 1. **Independent Scaling**: Scale auth independently from courses
 2. **Technology Flexibility**: Use different databases per service
 3. **Team Autonomy**: Separate teams for each domain
-4. **Fault Isolation**: Failure in one service doesn't cascade
+4. **Fault Isolation**: Failure in one service does not cascade
 5. **Deployment Flexibility**: Deploy services independently
 
 ## Next Steps
