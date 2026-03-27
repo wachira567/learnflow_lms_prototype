@@ -118,7 +118,7 @@ If you need help or have questions:
 1. Check the [Getting Started](./getting-started) guide
 2. Review the [API Reference](./api-reference) for endpoint details
 3. Explore the [Architecture](./architecture) documentation
-4. Check the [FAQ](./faq) section
+4. Explore the [Security](./security) documentation
 
 ## License
 
