@@ -31,25 +31,15 @@ The system consists of three main layers:
 
 ### Project Structure
 
-```
-frontend/src/
-├── components/          # Reusable UI components
-│   ├── auth/           # Authentication components
-│   ├── common/         # Common components
-│   ├── discussions/    # Discussion components
-│   ├── layouts/        # Layout components
-│   └── leaderboard/    # Leaderboard components
-├── contexts/           # React contexts
-├── pages/              # Page components
-│   ├── admin/          # Admin pages
-│   ├── auth/           # Auth pages
-│   ├── learner/        # Learner pages
-│   └── public/         # Public pages
-├── services/           # API service functions
-├── App.jsx             # Main app component
-├── main.jsx            # Entry point
-└── index.css           # Global styles
-```
+The frontend is organized into the following directories:
+
+- **components**: Reusable UI components including auth, common, discussions, layouts, and leaderboard components
+- **contexts**: React contexts for Auth and Theme management
+- **pages**: Page components organized by admin, auth, learner, and public sections
+- **services**: API service functions for analytics, API calls, authentication, chat, courses, and learner operations
+- **App.jsx**: Main app component
+- **main.jsx**: Entry point
+- **index.css**: Global styles
 
 ### Key Frontend Patterns
 
@@ -72,17 +62,15 @@ frontend/src/
 
 ### Project Structure
 
-```
-backend/app/
-├── __init__.py
-├── main.py              # FastAPI application (entry point)
-├── auth.py              # Authentication module
-├── models.py            # SQLAlchemy ORM models
-├── schemas.py           # Pydantic request/response schemas
-├── database.py          # PostgreSQL configuration
-├── mongo_service.py     # MongoDB operations
-└── cloudinary_service.py # Media upload service
-```
+The backend is organized into the following modules:
+
+- **main.py**: FastAPI application entry point
+- **auth.py**: Authentication module
+- **models.py**: SQLAlchemy ORM models
+- **schemas.py**: Pydantic request/response schemas
+- **database.py**: PostgreSQL configuration
+- **mongo_service.py**: MongoDB operations
+- **cloudinary_service.py**: Media upload service
 
 ### Key Backend Patterns
 
@@ -170,17 +158,11 @@ LearnFlow follows REST conventions:
 
 ### Base URL
 
-```
-http://localhost:8000/api
-```
+The API is accessible at `http://localhost:8000/api`
 
 ### Authentication
 
-All protected endpoints require a JWT token in the Authorization header:
-
-```
-Authorization: Bearer <token>
-```
+All protected endpoints require a JWT token in the Authorization header using the Bearer scheme.
 
 ### Rate Limiting
 
