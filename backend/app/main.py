@@ -88,10 +88,12 @@ async def global_exception_handler(request: Request, exc: Exception):
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     return response
 
+import os
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=[os.getenv("FRONTEND_URL", "http://localhost:3000")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
