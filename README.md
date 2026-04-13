@@ -194,7 +194,7 @@ npm run dev
 
 ## Environment Variables
 
-> **Important**: All required API keys and secrets are provided in our [Environment Setup Guide](https://docs.google.com/document/d/1GE1Qd-3u9wpCa-oIdrsz1zBZTsw_UvRBqd-i-cN339A/edit?usp=sharing). This document contains all the values you need to run the application.
+
 
 ### Creating the .env File
 
