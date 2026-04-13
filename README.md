@@ -6,11 +6,17 @@
 
 A modern, full-stack Learning Management System (LMS) prototype built with React, FastAPI, PostgreSQL, and MongoDB. This project demonstrates full-stack development skills including frontend, backend, dual-database architecture, and modern DevOps practices.
 
+## Live Project Links
+
+- **Repository**: [https://github.com/wachira567/learnflow_lms_prototype.git](https://github.com/wachira567/learnflow_lms_prototype.git)
+- **Frontend (Live)**: [https://learnflow-lms-prototype-g5rv.vercel.app/](https://learnflow-lms-prototype-g5rv.vercel.app/)
+- **Backend API (Live)**: [https://learnflow-lms.onrender.com](https://learnflow-lms.onrender.com)
+
 ## Quick Start (Docker Compose)
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/wachira567/learnflow_lms_prototype.git
 cd learnflow_app
 
 # Create .env file with environment variables (see below)
@@ -25,10 +31,10 @@ docker-compose up --build
 
 The application will be available at:
 
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **Documentation**: [LearnFlow Docs](https://learnflow-lms-prototype.vercel.app/)
+- **Frontend (Live)**: [https://learnflow-lms-prototype-g5rv.vercel.app/](https://learnflow-lms-prototype-g5rv.vercel.app/)
+- **Backend API (Live)**: [https://learnflow-lms.onrender.com](https://learnflow-lms.onrender.com)
+- **API Documentation (Production)**: [https://learnflow-lms.onrender.com/docs](https://learnflow-lms.onrender.com/docs)
+
 
 ## Table of Contents
 
@@ -45,7 +51,7 @@ The application will be available at:
 - [Microservices Architecture](#microservices-architecture)
 - [Design Decisions \& Trade-offs](#design-decisions--trade-offs)
 - [Project Structure](#project-structure)
-- [Documentation](https://learnflow-lms-prototype.vercel.app/)
+- [Documentation](https://learnflow-lms-prototype-g5rv.vercel.app/)
 
 ---
 
