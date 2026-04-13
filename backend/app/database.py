@@ -5,7 +5,7 @@ from pymongo import MongoClient
 import os
 
 # Database connection string
-POSTGRES_URL = os.getenv(
+POSTGRES_URL = os.getenv("POSTGRES_URL") or os.getenv(
     "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/learnflow"
 )
 
